@@ -14,12 +14,13 @@ import {
   StatusBadge,
   Toaster,
   DataTablePaginationState,
+  Text,
 } from "@medusajs/ui";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
 import { sdk } from "../../lib/config";
-import { HttpTypes } from "@medusajs/framework/types";
 import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { HttpTypes } from "@medusajs/framework/types";
 
 type Review = {
   id: string;
@@ -58,8 +59,8 @@ const columns = [
         row.original.status === "approved"
           ? "green"
           : row.original.status === "rejected"
-            ? "red"
-            : "grey";
+          ? "red"
+          : "grey";
       return (
         <StatusBadge color={color}>
           {row.original.status.charAt(0).toUpperCase() +
@@ -163,7 +164,7 @@ const ReviewsPage = () => {
   });
 
   const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>(
-    {},
+    {}
   );
 
   const commands = useCommands(refetch);
@@ -185,15 +186,29 @@ const ReviewsPage = () => {
     },
   });
 
+  const hasReviews = !isLoading && (data?.count ?? 0) > 0;
+
   return (
     <Container>
       <DataTable instance={table}>
         <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
           <Heading>Reviews</Heading>
         </DataTable.Toolbar>
-        <DataTable.Table />
-        <DataTable.Pagination />
-        <DataTable.CommandBar selectedLabel={(count) => `${count} selected`} />
+        {hasReviews ? (
+          <>
+            <DataTable.Table />
+            <DataTable.Pagination />
+            <DataTable.CommandBar
+              selectedLabel={(count) => `${count} selected`}
+            />
+          </>
+        ) : (
+          !isLoading && (
+            <div className="py-12 flex justify-center">
+              <Text className="text-ui-fg-subtle">No reviews found</Text>
+            </div>
+          )
+        )}
       </DataTable>
       <Toaster />
     </Container>
