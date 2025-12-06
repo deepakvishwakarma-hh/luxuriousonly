@@ -25,6 +25,7 @@ type Brand = {
   description?: string | null;
   meta_title?: string | null;
   meta_desc?: string | null;
+  image_url?: string | null;
   products?: HttpTypes.AdminProduct[];
 };
 
@@ -39,6 +40,7 @@ type BrandFormData = {
   description?: string;
   meta_title?: string;
   meta_desc?: string;
+  image_url?: string;
 };
 
 const BrandEditPage = () => {
@@ -51,7 +53,9 @@ const BrandEditPage = () => {
     description: "",
     meta_title: "",
     meta_desc: "",
+    image_url: "",
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     new Set()
@@ -99,7 +103,9 @@ const BrandEditPage = () => {
         description: brand.description || "",
         meta_title: brand.meta_title || "",
         meta_desc: brand.meta_desc || "",
+        image_url: brand.image_url || "",
       });
+      setImagePreview(brand.image_url || null);
       // Set selected products
       if (brand.products) {
         setSelectedProducts(new Set(brand.products.map((p) => p.id)));
@@ -150,7 +156,13 @@ const BrandEditPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateMutation.mutateAsync(formData);
+    // If image_url is a data URL, you might want to upload it first
+    // For now, we'll send it as-is (data URLs work but are not ideal for production)
+    const submitData = {
+      ...formData,
+      image_url: formData.image_url || undefined,
+    };
+    await updateMutation.mutateAsync(submitData);
   };
 
   const handleProductToggle = async (
@@ -289,6 +301,113 @@ const BrandEditPage = () => {
               }
               rows={3}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="image_url">Image URL</Label>
+            <Input
+              id="image_url"
+              type="url"
+              value={formData.image_url}
+              onChange={(e) => {
+                const url = e.target.value;
+                setFormData({ ...formData, image_url: url });
+                setImagePreview(url || null);
+              }}
+              placeholder="https://example.com/brand-image.jpg"
+            />
+            {imagePreview && (
+              <div className="mt-2">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-w-xs max-h-48 object-contain border rounded"
+                  onError={() => setImagePreview(null)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  className="mt-2"
+                  onClick={() => {
+                    setFormData({ ...formData, image_url: "" });
+                    setImagePreview(null);
+                  }}
+                >
+                  Remove Image
+                </Button>
+              </div>
+            )}
+            <div className="mt-2">
+              <Label htmlFor="image_file" className="cursor-pointer">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById("image_file")?.click();
+                  }}
+                  disabled={updateMutation.isPending}
+                >
+                  {imagePreview ? "Change Image" : "Upload Image"}
+                </Button>
+              </Label>
+              <input
+                id="image_file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+
+                  // Show preview immediately
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setImagePreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+
+                  // Upload file to get URL
+                  try {
+                    const uploadFormData = new FormData();
+                    uploadFormData.append("file", file);
+
+                    // Use native fetch for file uploads
+                    const baseUrl = import.meta.env.VITE_BACKEND_URL || "/";
+                    const response = await fetch(`${baseUrl}/admin/upload`, {
+                      method: "POST",
+                      body: uploadFormData,
+                      credentials: "include", // Include cookies for auth
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`Upload failed: ${response.statusText}`);
+                    }
+
+                    const data = (await response.json()) as {
+                      url?: string;
+                      file?: any;
+                    };
+
+                    if (data.url) {
+                      setFormData((prev) => ({ ...prev, image_url: data.url }));
+                      setImagePreview(data.url);
+                    } else {
+                      throw new Error("No URL returned from upload");
+                    }
+                  } catch (error) {
+                    console.error("Error uploading image:", error);
+                    setImagePreview(formData.image_url || null);
+                    alert("Failed to upload image. Please try again.");
+                  }
+                }}
+              />
+              <Text className="text-ui-fg-subtle text-xs mt-1">
+                Upload an image file or paste an image URL
+              </Text>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">

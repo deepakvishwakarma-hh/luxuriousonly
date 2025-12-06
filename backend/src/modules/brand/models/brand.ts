@@ -7,6 +7,7 @@ const Brand = model.define("brand", {
     description: model.text().nullable(),
     meta_title: model.text().nullable(),
     meta_desc: model.text().nullable(),
+    image_url: model.text().nullable(),
 })
 
 export default Brand

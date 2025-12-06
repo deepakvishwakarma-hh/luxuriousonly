@@ -10,6 +10,7 @@ type CreateBrandInput = {
     description?: string
     meta_title?: string
     meta_desc?: string
+    image_url?: string
 }
 
 export const createBrandWorkflow = createWorkflow(

@@ -108,6 +108,11 @@ export default defineMiddlewares({
           defaults: [
             "id",
             "name",
+            "slug",
+            "description",
+            "meta_title",
+            "meta_desc",
+            "image_url",
             "products.*", // include linked products by default
           ],
           isList: true,
@@ -130,6 +135,11 @@ export default defineMiddlewares({
         // @ts-ignore
         validateAndTransformBody(LinkBrandProductsSchema),
       ],
+    },
+    {
+      matcher: "/admin/upload",
+      method: ["POST"],
+      // No body validation for file uploads - handled in route
     },
 
 

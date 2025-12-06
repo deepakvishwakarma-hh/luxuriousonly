@@ -21,4 +21,13 @@ module.exports = defineConfig({
       resolve: "./src/modules/brand",
     },
   ],
+  plugins: [
+    {
+      resolve: "@medusajs/file-local",
+      options: {
+        upload_dir: "uploads/images",
+        backend_url: process.env.BACKEND_URL || "http://localhost:9000",
+      },
+    },
+  ],
 })

@@ -13,6 +13,7 @@ export const UpdateBrandSchema = z.object({
     description: z.string().nullable().optional(),
     meta_title: z.string().nullable().optional(),
     meta_desc: z.string().nullable().optional(),
+    image_url: z.string().nullable().optional(),
 })
 
 export async function GET(
@@ -52,7 +53,7 @@ export async function PUT(
 ) {
     try {
         const { id } = req.params
-        const { name, slug, description, meta_title, meta_desc } = req.validatedBody
+        const { name, slug, description, meta_title, meta_desc, image_url } = req.validatedBody
 
         const { result } = await updateBrandWorkflow(req.scope).run({
             input: {
@@ -62,6 +63,7 @@ export async function PUT(
                 description,
                 meta_title,
                 meta_desc,
+                image_url,
             },
         })
 

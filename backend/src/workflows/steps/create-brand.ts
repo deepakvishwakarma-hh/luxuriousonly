@@ -11,6 +11,7 @@ export type CreateBrandStepInput = {
     description?: string
     meta_title?: string
     meta_desc?: string
+    image_url?: string
 }
 
 export const createBrandStep = createStep(

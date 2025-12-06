@@ -27,6 +27,7 @@ type Brand = {
   description?: string | null;
   meta_title?: string | null;
   meta_desc?: string | null;
+  image_url?: string | null;
   created_at: Date;
   updated_at: Date;
   products?: HttpTypes.AdminProduct[];
@@ -38,6 +39,7 @@ type BrandFormData = {
   description?: string;
   meta_title?: string;
   meta_desc?: string;
+  image_url?: string;
 };
 
 const limit = 15;
@@ -50,6 +52,27 @@ const BrandsPage = () => {
   };
 
   const columns = [
+    columnHelper.accessor("image_url", {
+      header: "Image",
+      cell: ({ row }) => {
+        const imageUrl = row.original.image_url;
+        if (!imageUrl) {
+          return <Text className="text-ui-fg-subtle">-</Text>;
+        }
+        return (
+          <div className="w-16 h-16">
+            <img
+              src={imageUrl}
+              alt={row.original.name}
+              className="w-full h-full object-cover rounded border"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </div>
+        );
+      },
+    }),
     columnHelper.accessor("name", {
       header: "Name",
     }),
@@ -139,7 +162,9 @@ const BrandsPage = () => {
     description: "",
     meta_title: "",
     meta_desc: "",
+    image_url: "",
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -203,7 +228,9 @@ const BrandsPage = () => {
       description: "",
       meta_title: "",
       meta_desc: "",
+      image_url: "",
     });
+    setImagePreview(null);
   };
 
   const handleOpenCreate = () => {
@@ -213,7 +240,13 @@ const BrandsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    // If image_url is a data URL, you might want to upload it first
+    // For now, we'll send it as-is (data URLs work but are not ideal for production)
+    const submitData = {
+      ...formData,
+      image_url: formData.image_url || undefined,
+    };
+    createMutation.mutate(submitData);
   };
 
   const generateSlug = (name: string) => {
@@ -331,6 +364,110 @@ const BrandsPage = () => {
                     }
                     rows={3}
                   />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="image_url">Image URL</Label>
+                  <Input
+                    id="image_url"
+                    type="url"
+                    value={formData.image_url}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setFormData({ ...formData, image_url: url });
+                      setImagePreview(url || null);
+                    }}
+                    placeholder="https://example.com/brand-image.jpg"
+                  />
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-w-xs max-h-48 object-contain border rounded"
+                        onError={() => setImagePreview(null)}
+                      />
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <Label htmlFor="image_file" className="cursor-pointer">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="small"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById("image_file")?.click();
+                        }}
+                        disabled={createMutation.isPending}
+                      >
+                        Upload Image
+                      </Button>
+                    </Label>
+                    <input
+                      id="image_file"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        // Show preview immediately
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setImagePreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+
+                        // Upload file to get URL
+                        try {
+                          const uploadFormData = new FormData();
+                          uploadFormData.append("file", file);
+
+                          // Use native fetch for file uploads
+                          const baseUrl =
+                            import.meta.env.VITE_BACKEND_URL || "/";
+                          const response = await fetch(
+                            `${baseUrl}/admin/upload`,
+                            {
+                              method: "POST",
+                              body: uploadFormData,
+                              credentials: "include", // Include cookies for auth
+                            }
+                          );
+
+                          if (!response.ok) {
+                            throw new Error(
+                              `Upload failed: ${response.statusText}`
+                            );
+                          }
+
+                          const data = (await response.json()) as {
+                            url?: string;
+                            file?: any;
+                          };
+
+                          if (data.url) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              image_url: data.url,
+                            }));
+                            setImagePreview(data.url);
+                          } else {
+                            throw new Error("No URL returned from upload");
+                          }
+                        } catch (error) {
+                          console.error("Error uploading image:", error);
+                          setImagePreview(null);
+                          alert("Failed to upload image. Please try again.");
+                        }
+                      }}
+                    />
+                    <Text className="text-ui-fg-subtle text-xs mt-1">
+                      Upload an image file or paste an image URL
+                    </Text>
+                  </div>
                 </div>
               </div>
               <div className="p-6 border-t flex justify-end gap-2">

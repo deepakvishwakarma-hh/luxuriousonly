@@ -12,6 +12,7 @@ export type UpdateBrandStepInput = {
     description?: string | null
     meta_title?: string | null
     meta_desc?: string | null
+    image_url?: string | null
 }
 
 export const updateBrandStep = createStep(
@@ -47,6 +48,7 @@ export const updateBrandStep = createStep(
             description: originalData.description,
             meta_title: originalData.meta_title,
             meta_desc: originalData.meta_desc,
+            image_url: originalData.image_url,
         })
     }
 )

@@ -15,7 +15,7 @@ export const CreateBrandSchema = z.object({
     description: z.string().optional(),
     meta_title: z.string().optional(),
     meta_desc: z.string().optional(),
-
+    image_url: z.string().optional(),
 })
 
 export const GET = async (
@@ -64,7 +64,7 @@ export const POST = async (
     res: MedusaResponse
 ) => {
     try {
-        const { name, slug, description, meta_title, meta_desc } = req.validatedBody
+        const { name, slug, description, meta_title, meta_desc, image_url } = req.validatedBody
 
         const { result } = await createBrandWorkflow(req.scope).run({
             input: {
@@ -73,6 +73,7 @@ export const POST = async (
                 description,
                 meta_title,
                 meta_desc,
+                image_url,
             },
         })
 

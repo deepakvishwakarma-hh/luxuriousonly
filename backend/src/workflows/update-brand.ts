@@ -11,6 +11,7 @@ export type UpdateBrandInput = {
     description?: string | null
     meta_title?: string | null
     meta_desc?: string | null
+    image_url?: string | null
 }
 
 export const updateBrandWorkflow = createWorkflow(
