@@ -6,6 +6,7 @@ import { createBrandStep } from "./steps/create-brand"
 
 type CreateBrandInput = {
     name: string
+    slug?: string
     description?: string
     meta_title?: string
     meta_desc?: string

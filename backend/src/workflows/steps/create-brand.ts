@@ -7,6 +7,7 @@ import BrandModuleService from "../../modules/brand/service"
 
 export type CreateBrandStepInput = {
     name: string
+    slug?: string
     description?: string
     meta_title?: string
     meta_desc?: string

@@ -8,7 +8,7 @@ import { PostStoreReviewSchema } from "./store/reviews/route";
 import { GetAdminReviewsSchema } from "./admin/reviews/route";
 import { PostAdminUpdateReviewsStatusSchema } from "./admin/reviews/status/route";
 import { GetStoreReviewsSchema } from "./store/products/[id]/reviews/route";
-import { GetAdminBrandsSchema, CreateBrandSchema } from "./admin/brands/route";
+import { CreateBrandSchema } from "./admin/brands/route";
 import { UpdateBrandSchema } from "./admin/brands/[id]/route";
 import { LinkBrandProductsSchema } from "./admin/brands/[id]/products/route";
 
@@ -84,24 +84,6 @@ export default defineMiddlewares({
             "last_name",
             "content",
             "created_at",
-          ],
-        }),
-      ],
-    },
-    {
-      matcher: "/admin/brands",
-      method: ["GET"],
-      middlewares: [
-        validateAndTransformQuery(GetAdminBrandsSchema, {
-          isList: true,
-          defaults: [
-            "id",
-            "name",
-            "description",
-            "meta_title",
-            "meta_desc",
-            "created_at",
-            "updated_at",
           ],
         }),
       ],

@@ -4,12 +4,14 @@ import {
 } from "@medusajs/framework/http"
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 import { createBrandWorkflow } from "../../../workflows/create-brand"
+import { getBrandsWorkflow } from "../../../workflows/get-brands"
 import { z } from "zod"
 
 export const GetAdminBrandsSchema = createFindParams()
 
 export const CreateBrandSchema = z.object({
     name: z.string().min(1),
+    slug: z.string().optional(),
     description: z.string().optional(),
     meta_title: z.string().optional(),
     meta_desc: z.string().optional(),
@@ -20,25 +22,20 @@ export const GET = async (
     res: MedusaResponse
 ) => {
     try {
-        const query = req.scope.resolve("query")
+        // Use queryConfig if available, otherwise use raw query parameters
+        const queryConfig = req.queryConfig || req.query || {}
 
-        const {
-            data: brands,
-            metadata: { count, take, skip } = {
-                count: 0,
-                take: 20,
-                skip: 0,
+        const { result } = await getBrandsWorkflow(req.scope).run({
+            input: {
+                queryConfig,
             },
-        } = await query.graph({
-            entity: "brand",
-            ...req.queryConfig,
         })
 
         res.json({
-            brands,
-            count,
-            limit: take,
-            offset: skip,
+            brands: result.brands,
+            count: result.count,
+            limit: result.limit,
+            offset: result.offset,
         })
     } catch (error) {
         res.status(500).json({
@@ -52,11 +49,12 @@ export const POST = async (
     res: MedusaResponse
 ) => {
     try {
-        const { name, description, meta_title, meta_desc } = req.validatedBody
+        const { name, slug, description, meta_title, meta_desc } = req.validatedBody
 
         const { result } = await createBrandWorkflow(req.scope).run({
             input: {
                 name,
+                slug,
                 description,
                 meta_title,
                 meta_desc,

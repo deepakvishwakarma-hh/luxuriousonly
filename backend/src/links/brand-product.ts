@@ -6,7 +6,7 @@ export default defineLink(
     BrandModule.linkable.brand,
     ProductModule.linkable.product,
     {
-        isList: true,
+        readOnly: true
     }
 )
 

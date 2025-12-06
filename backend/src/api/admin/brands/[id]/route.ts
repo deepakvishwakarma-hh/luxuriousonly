@@ -9,6 +9,7 @@ import { z } from "zod"
 
 export const UpdateBrandSchema = z.object({
     name: z.string().min(1).optional(),
+    slug: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
     meta_title: z.string().nullable().optional(),
     meta_desc: z.string().nullable().optional(),
@@ -22,9 +23,10 @@ export async function GET(
         const query = req.scope.resolve("query")
         const { id } = req.params
 
+        // Query brand without products first to avoid link errors
         const { data: brands } = await query.graph({
             entity: "brand",
-            fields: ["*", "products.*"],
+            fields: ["*"],
             filters: {
                 id,
             },
@@ -48,12 +50,13 @@ export async function PUT(
 ) {
     try {
         const { id } = req.params
-        const { name, description, meta_title, meta_desc } = req.validatedBody
+        const { name, slug, description, meta_title, meta_desc } = req.validatedBody
 
         const { result } = await updateBrandWorkflow(req.scope).run({
             input: {
                 id,
                 name,
+                slug,
                 description,
                 meta_title,
                 meta_desc,
