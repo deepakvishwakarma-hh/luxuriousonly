@@ -8,6 +8,7 @@ import { PostStoreReviewSchema } from "./store/reviews/route";
 import { GetAdminReviewsSchema } from "./admin/reviews/route";
 import { PostAdminUpdateReviewsStatusSchema } from "./admin/reviews/status/route";
 import { GetStoreReviewsSchema } from "./store/products/[id]/reviews/route";
+import { GetStoreBrandsSchema } from "./store/brands/route";
 import { CreateBrandSchema } from "./admin/brands/route";
 import { UpdateBrandSchema } from "./admin/brands/[id]/route";
 import { LinkBrandProductsSchema } from "./admin/brands/[id]/products/route";
@@ -88,6 +89,25 @@ export default defineMiddlewares({
             "last_name",
             "content",
             "created_at",
+          ],
+        }),
+      ],
+    },
+    {
+      matcher: "/store/brands",
+      method: ["GET"],
+      middlewares: [
+        validateAndTransformQuery(GetStoreBrandsSchema, {
+          isList: true,
+          defaults: [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "meta_title",
+            "meta_desc",
+            "image_url",
+            "products.*", // include linked products by default
           ],
         }),
       ],
