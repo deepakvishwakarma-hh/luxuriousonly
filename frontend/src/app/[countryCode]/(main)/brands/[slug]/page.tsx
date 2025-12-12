@@ -125,7 +125,7 @@ export default async function BrandProductsPage(props: Props) {
         >
           {products.map((product) => (
             <li key={product.id}>
-              <ProductPreview product={product} region={region} />
+              <ProductPreview product={product} region={region} countryCode={countryCode} />
             </li>
           ))}
         </ul>

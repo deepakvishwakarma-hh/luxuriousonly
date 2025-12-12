@@ -8,10 +8,14 @@ import ProductPreview from "@modules/products/components/product-preview"
 export default async function ProductRail({
   collection,
   region,
+  countryCode,
 }: {
   collection: HttpTypes.StoreCollection
   region: HttpTypes.StoreRegion
+  countryCode?: string
 }) {
+  // Extract countryCode from region if not provided
+  const finalCountryCode = countryCode || region.countries?.[0]?.iso_2 || "us"
   const {
     response: { products: pricedProducts },
   } = await listProducts({
@@ -38,7 +42,7 @@ export default async function ProductRail({
         {pricedProducts &&
           pricedProducts.map((product) => (
             <li key={product.id}>
-              <ProductPreview product={product} region={region} isFeatured />
+              <ProductPreview product={product} region={region} isFeatured countryCode={finalCountryCode} />
             </li>
           ))}
       </ul>
