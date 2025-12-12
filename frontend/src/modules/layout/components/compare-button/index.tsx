@@ -3,18 +3,37 @@
 import { useState, useEffect } from "react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
+import { getCompareCount } from "@lib/util/compare-cookies"
 
 export default function CompareButton() {
   const [count, setCount] = useState(0)
 
-  // TODO: Fetch compare products count from API
   useEffect(() => {
-    // Placeholder: This should fetch from your compare products API
-    // For now, you can use localStorage or a context to get the count
-    const compareItems = JSON.parse(
-      localStorage.getItem("compareProducts") || "[]"
-    )
-    setCount(compareItems.length)
+    // Get initial count from cookies
+    setCount(getCompareCount())
+
+    // Listen for custom compareUpdated event
+    const handleCompareUpdate = () => {
+      setCount(getCompareCount())
+    }
+
+    window.addEventListener("compareUpdated", handleCompareUpdate)
+
+    // Also poll periodically as fallback (in case event doesn't fire)
+    const interval = setInterval(() => {
+      const newCount = getCompareCount()
+      setCount((prevCount) => {
+        if (newCount !== prevCount) {
+          return newCount
+        }
+        return prevCount
+      })
+    }, 1000)
+
+    return () => {
+      window.removeEventListener("compareUpdated", handleCompareUpdate)
+      clearInterval(interval)
+    }
   }, [])
 
   return (

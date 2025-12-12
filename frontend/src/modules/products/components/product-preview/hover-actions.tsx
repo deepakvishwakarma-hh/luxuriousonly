@@ -4,6 +4,11 @@ import { HttpTypes } from "@medusajs/types"
 import { useState, useEffect } from "react"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
 import { useRouter } from "next/navigation"
+import {
+  isInCompare,
+  addToCompare,
+  removeFromCompare,
+} from "@lib/util/compare-cookies"
 
 type HoverActionsProps = {
   product: HttpTypes.StoreProduct
@@ -12,18 +17,15 @@ type HoverActionsProps = {
 export default function HoverActions({ product }: HoverActionsProps) {
   const router = useRouter()
   const [isLiked, setIsLiked] = useState(false)
-  const [isInCompare, setIsInCompare] = useState(false)
+  const [isInCompareState, setIsInCompareState] = useState(false)
 
   // Check if product is liked or in compare on mount
   useEffect(() => {
     // Check liked products (would need API call)
     // For now, we'll skip this check
 
-    // Check compare products from localStorage
-    const compareItems = JSON.parse(
-      localStorage.getItem("compareProducts") || "[]"
-    )
-    setIsInCompare(compareItems.some((item: any) => item.id === product.id))
+    // Check compare products from cookies
+    setIsInCompareState(isInCompare(product.id))
   }, [product.id])
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -47,28 +49,14 @@ export default function HoverActions({ product }: HoverActionsProps) {
     e.preventDefault()
     e.stopPropagation()
 
-    const compareItems = JSON.parse(
-      localStorage.getItem("compareProducts") || "[]"
-    )
-
-    if (isInCompare) {
+    if (isInCompareState) {
       // Remove from compare
-      const updated = compareItems.filter((item: any) => item.id !== product.id)
-      localStorage.setItem("compareProducts", JSON.stringify(updated))
-      setIsInCompare(false)
+      removeFromCompare(product.id)
+      setIsInCompareState(false)
     } else {
       // Add to compare
-      const updated = [
-        ...compareItems,
-        {
-          id: product.id,
-          title: product.title,
-          handle: product.handle,
-          thumbnail: product.thumbnail,
-        },
-      ]
-      localStorage.setItem("compareProducts", JSON.stringify(updated))
-      setIsInCompare(true)
+      addToCompare(product.id)
+      setIsInCompareState(true)
     }
   }
 
@@ -83,7 +71,7 @@ export default function HoverActions({ product }: HoverActionsProps) {
     <div className="absolute top-2 right-2 z-10 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-md p-1 shadow-md">
       <button
         onClick={handleCompare}
-        className="bg-white rounded-full p-2"
+        className={isInCompareState ? "bg-black text-white rounded-full p-2" : "bg-white rounded-full p-2"}
         aria-label="Compare product"
         data-testid="compare-button"
       >
