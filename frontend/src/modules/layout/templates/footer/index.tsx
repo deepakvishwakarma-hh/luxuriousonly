@@ -4,7 +4,7 @@ import { useState } from "react"
 import { FaFacebookF, FaInstagram, FaTwitter } from "react-icons/fa"
 import { IoArrowUp } from "react-icons/io5"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { WEBSITE_DOMAIN } from "@lib/brand"
+import { WEBSITE_DOMAIN, WEBSITE_NAME } from "@lib/brand"
 
 const Footer = () => {
   const [email, setEmail] = useState("")
@@ -45,14 +45,14 @@ const Footer = () => {
             {/* About Luxuriousmart Column */}
             <div className="lg:col-span-2">
               <h3 className="text-white font-semibold text-lg mb-4">
-                About Luxuriousmart
+                About {WEBSITE_NAME}
               </h3>
               <div className="space-y-3 text-sm leading-relaxed">
                 <p>
-                  We curate a collection of high-end eyewear that combines
-                  style, quality, and authenticity. Our mission is to provide
-                  premium-quality designer eyeglasses and sunglasses to our
-                  customers.
+                  {WEBSITE_NAME} curates a collection of high-end eyewear that
+                  combines style, quality, and authenticity. Our mission is to
+                  provide premium-quality designer eyeglasses and sunglasses to
+                  our customers.
                 </p>
                 <p>
                   We partner with top eyewear brands to bring you the latest
@@ -390,9 +390,8 @@ const Footer = () => {
         <div className="bg-black w-full">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <p className="text-white text-xs md:text-sm">
-              Copyright © {new Date().getFullYear()}{" "}
-              {WEBSITE_DOMAIN !== "none" ? WEBSITE_DOMAIN : "luxuriousmart.com"}{" "}
-              All Rights Reserved.
+              Copyright © 2025
+              {WEBSITE_DOMAIN} All Rights Reserved.
             </p>
             <button
               onClick={scrollToTop}
