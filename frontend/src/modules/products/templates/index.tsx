@@ -1,16 +1,17 @@
 import React, { Suspense } from "react"
 
-import ImageGallery from "@modules/products/components/image-gallery"
 import ProductActions from "@modules/products/components/product-actions"
-import ProductOnboardingCta from "@modules/products/components/product-onboarding-cta"
 import ProductTabs from "@modules/products/components/product-tabs"
 import RelatedProducts from "@modules/products/components/related-products"
 import ProductInfo from "@modules/products/templates/product-info"
 import SkeletonRelatedProducts from "@modules/skeletons/templates/skeleton-related-products"
 import { notFound } from "next/navigation"
 import { HttpTypes } from "@medusajs/types"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 import ProductActionsWrapper from "./product-actions-wrapper"
+import ProductImageCarousel from "@modules/products/components/image-gallery/product-image"
+import ProductInfoActions from "@modules/products/components/product-info-actions"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -31,30 +32,57 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
   return (
     <>
-      <div
-        className="content-container  flex flex-col small:flex-row small:items-start py-6 relative"
-        data-testid="product-container"
-      >
-        <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-6">
-          <ProductInfo product={product} />
-          <ProductTabs product={product} />
-        </div>
-        <div className="block w-full relative">
-          <ImageGallery images={images} />
-        </div>
-        <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-12">
-          <ProductOnboardingCta />
-          <Suspense
-            fallback={
-              <ProductActions
-                disabled={true}
-                product={product}
-                region={region}
-              />
-            }
+      <div className="content-container">
+        {/* Breadcrumb */}
+        <nav
+          className="flex items-center gap-2 py-4 text-sm text-ui-fg-subtle"
+          aria-label="Breadcrumb"
+        >
+          <LocalizedClientLink
+            href="/"
+            className="hover:text-ui-fg-base transition-colors"
           >
-            <ProductActionsWrapper id={product.id} region={region} />
-          </Suspense>
+            Home
+          </LocalizedClientLink>
+          {product.collection && (
+            <>
+              <span>/</span>
+              <LocalizedClientLink
+                href={`/collections/${product.collection.handle}`}
+                className="hover:text-ui-fg-base transition-colors"
+              >
+                {product.collection.title}
+              </LocalizedClientLink>
+            </>
+          )}
+          <span>/</span>
+          <span className="text-ui-fg-base">{product.title}</span>
+        </nav>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* left side  */}
+          <div className="w-full md:w-1/2">
+            <ProductImageCarousel
+              images={(images ?? []).map((image) => image.url)}
+              productTitle={product.title}
+            />
+          </div>
+          {/* right side  */}
+          <div className="w-full md:w-1/2">
+            <ProductInfo product={product} />
+            <Suspense
+              fallback={
+                <ProductActions
+                  disabled={true}
+                  product={product}
+                  region={region}
+                />
+              }
+            >
+              <ProductActionsWrapper id={product.id} region={region} />
+            </Suspense>
+            <ProductTabs product={product} />
+            <ProductInfoActions />
+          </div>
         </div>
       </div>
       <div

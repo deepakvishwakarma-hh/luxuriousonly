@@ -69,7 +69,7 @@ export const listProducts = async ({
           offset,
           region_id: region?.id,
           fields:
-            "*variants.calculated_price,+variants.inventory_quantity,*variants.images,+metadata,+tags,",
+            "*variants.calculated_price,+variants.inventory_quantity,*variants.images,+metadata,+tags",
           ...queryParams,
         },
         headers,
@@ -80,15 +80,6 @@ export const listProducts = async ({
 
     const products = response?.products || []
     const count = response?.count || 0
-
-    console.log("[listProducts] API Response:", {
-      productsCount: products.length,
-      totalCount: count,
-      regionId: region?.id,
-      limit,
-      offset,
-      queryParams,
-    })
 
     const nextPage = count > offset + limit ? pageParam + 1 : null
 

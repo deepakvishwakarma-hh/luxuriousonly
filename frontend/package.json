@@ -34,7 +34,8 @@
     "slick-carousel": "^1.8.1",
     "swiper": "^11.1.14",
     "tailwindcss-radix": "^2.8.0",
-    "webpack": "^5"
+    "webpack": "^5",
+    "yet-another-react-lightbox": "^3.27.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",

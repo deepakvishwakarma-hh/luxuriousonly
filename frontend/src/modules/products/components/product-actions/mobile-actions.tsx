@@ -21,6 +21,11 @@ type MobileActionsProps = {
   isAdding?: boolean
   show: boolean
   optionsDisabled: boolean
+  quantity: number
+  onQuantityChange: (quantity: number) => void
+  onIncrement: () => void
+  onDecrement: () => void
+  quantityDisabled: boolean
 }
 
 const MobileActions: React.FC<MobileActionsProps> = ({
@@ -33,6 +38,11 @@ const MobileActions: React.FC<MobileActionsProps> = ({
   isAdding,
   show,
   optionsDisabled,
+  quantity,
+  onQuantityChange,
+  onIncrement,
+  onDecrement,
+  quantityDisabled,
 }) => {
   const { state, open, close } = useToggleState()
 
@@ -98,37 +108,85 @@ const MobileActions: React.FC<MobileActionsProps> = ({
                 <div></div>
               )}
             </div>
-            <div className={clx("grid grid-cols-2 w-full gap-x-4", {
-              "!grid-cols-1": isSimple
-            })}>
-              {!isSimple && <Button
-                onClick={open}
-                variant="secondary"
-                className="w-full"
-                data-testid="mobile-actions-button"
+            <div
+              className={clx("grid grid-cols-2 w-full gap-x-4", {
+                "!grid-cols-1": isSimple,
+              })}
+            >
+              {!isSimple && (
+                <Button
+                  onClick={open}
+                  variant="secondary"
+                  className="w-full"
+                  data-testid="mobile-actions-button"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>
+                      {variant
+                        ? Object.values(options).join(" / ")
+                        : "Select Options"}
+                    </span>
+                    <ChevronDown />
+                  </div>
+                </Button>
+              )}
+              <div
+                className={clx("flex items-center gap-2", {
+                  "col-span-2": isSimple,
+                })}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span>
-                    {variant
-                      ? Object.values(options).join(" / ")
-                      : "Select Options"}
-                  </span>
-                  <ChevronDown />
+                {/* Quantity Selector */}
+                <div className="flex items-center border border-gray-300 rounded-md">
+                  <button
+                    type="button"
+                    onClick={onDecrement}
+                    disabled={quantity <= 1 || quantityDisabled}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={quantity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10)
+                      if (!isNaN(value)) {
+                        onQuantityChange(value)
+                      }
+                    }}
+                    disabled={quantityDisabled}
+                    className="w-12 text-center border-0 focus:ring-0 focus:outline-none disabled:bg-white disabled:opacity-50"
+                    aria-label="Quantity"
+                  />
+                  <button
+                    type="button"
+                    onClick={onIncrement}
+                    disabled={quantity >= 10 || quantityDisabled}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
                 </div>
-              </Button>}
-              <Button
-                onClick={handleAddToCart}
-                disabled={!inStock || !variant}
-                className="w-full"
-                isLoading={isAdding}
-                data-testid="mobile-cart-button"
-              >
-                {!variant
-                  ? "Select variant"
-                  : !inStock
-                  ? "Out of stock"
-                  : "Add to cart"}
-              </Button>
+
+                {/* Add to Cart Button */}
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={!inStock || !variant}
+                  className="flex-1"
+                  isLoading={isAdding}
+                  data-testid="mobile-cart-button"
+                >
+                  {!variant
+                    ? "Select variant"
+                    : !inStock
+                    ? "Out of stock"
+                    : "Add to cart"}
+                </Button>
+              </div>
             </div>
           </div>
         </Transition>

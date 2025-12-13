@@ -12,6 +12,12 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import ProductPrice from "../product-price"
 import MobileActions from "./mobile-actions"
 import { useRouter } from "next/navigation"
+import Heart from "@modules/common/icons/heart"
+import {
+  addToLikedAPI,
+  removeFromLikedAPI,
+  getLikedProductIdsFromAPI,
+} from "@lib/util/liked-api"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -38,6 +44,10 @@ export default function ProductActions({
 
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [isLiked, setIsLiked] = useState(false)
+  const [isCheckingLiked, setIsCheckingLiked] = useState(true)
+  const [isTogglingLiked, setIsTogglingLiked] = useState(false)
   const countryCode = useParams().countryCode as string
 
   // If there is only 1 variant, preselect the options
@@ -47,6 +57,35 @@ export default function ProductActions({
       setOptions(variantOptions ?? {})
     }
   }, [product.variants])
+
+  // Check if product is liked
+  useEffect(() => {
+    const checkLikedStatus = async () => {
+      setIsCheckingLiked(true)
+      try {
+        const likedIds = await getLikedProductIdsFromAPI()
+        setIsLiked(likedIds.includes(product.id))
+      } catch (error) {
+        console.error("Error checking liked status:", error)
+        setIsLiked(false)
+      } finally {
+        setIsCheckingLiked(false)
+      }
+    }
+
+    checkLikedStatus()
+
+    // Listen for liked updates from other components
+    const handleLikedUpdate = () => {
+      checkLikedStatus()
+    }
+
+    window.addEventListener("likedUpdated", handleLikedUpdate)
+
+    return () => {
+      window.removeEventListener("likedUpdated", handleLikedUpdate)
+    }
+  }, [product.id])
 
   const selectedVariant = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
@@ -128,11 +167,60 @@ export default function ProductActions({
 
     await addToCart({
       variantId: selectedVariant.id,
-      quantity: 1,
+      quantity: quantity,
       countryCode,
     })
 
     setIsAdding(false)
+  }
+
+  // handle quantity changes
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1 && newQuantity <= 10) {
+      setQuantity(newQuantity)
+    }
+  }
+
+  const incrementQuantity = () => {
+    if (quantity < 10) {
+      setQuantity(quantity + 1)
+    }
+  }
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1)
+    }
+  }
+
+  // Handle wishlist toggle
+  const handleToggleWishlist = async () => {
+    if (isTogglingLiked || isCheckingLiked) return
+
+    setIsTogglingLiked(true)
+    const previousLikedState = isLiked
+    setIsLiked(!previousLikedState)
+
+    try {
+      let success = false
+      if (previousLikedState) {
+        success = await removeFromLikedAPI(product.id)
+      } else {
+        success = await addToLikedAPI(product.id)
+      }
+
+      if (!success) {
+        setIsLiked(previousLikedState)
+      } else {
+        const likedIds = await getLikedProductIdsFromAPI()
+        setIsLiked(likedIds.includes(product.id))
+      }
+    } catch (error) {
+      console.error("Failed to toggle wishlist:", error)
+      setIsLiked(previousLikedState)
+    } finally {
+      setIsTogglingLiked(false)
+    }
   }
 
   return (
@@ -162,26 +250,84 @@ export default function ProductActions({
 
         <ProductPrice product={product} variant={selectedVariant} />
 
-        <Button
-          onClick={handleAddToCart}
-          disabled={
-            !inStock ||
-            !selectedVariant ||
-            !!disabled ||
-            isAdding ||
-            !isValidVariant
-          }
-          variant="primary"
-          className="w-full h-10"
-          isLoading={isAdding}
-          data-testid="add-product-button"
-        >
-          {!selectedVariant && !options
-            ? "Select variant"
-            : !inStock || !isValidVariant
-            ? "Out of stock"
-            : "Add to cart"}
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Quantity Selector */}
+          <div className="flex items-center border border-gray-300 rounded-full overflow-hidden">
+            <button
+              type="button"
+              onClick={decrementQuantity}
+              disabled={quantity <= 1 || !!disabled || isAdding}
+              className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Decrease quantity"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={quantity}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10)
+                if (!isNaN(value)) {
+                  handleQuantityChange(value)
+                }
+              }}
+              disabled={!!disabled || isAdding}
+              className="w-12 text-center border-0 focus:ring-0 focus:outline-none disabled:bg-white disabled:opacity-50"
+              aria-label="Quantity"
+            />
+            <button
+              type="button"
+              onClick={incrementQuantity}
+              disabled={quantity >= 10 || !!disabled || isAdding}
+              className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Add to Cart Button */}
+          <Button
+            onClick={handleAddToCart}
+            disabled={
+              !inStock ||
+              !selectedVariant ||
+              !!disabled ||
+              isAdding ||
+              !isValidVariant
+            }
+            variant="primary"
+            className="flex-1 h-10 rounded-full"
+            isLoading={isAdding}
+            data-testid="add-product-button"
+          >
+            {!selectedVariant && !options
+              ? "Select variant"
+              : !inStock || !isValidVariant
+              ? "Out of stock"
+              : "Add to cart"}
+          </Button>
+        </div>
+
+        {/* Add to Wish List Button */}
+        <div className="flex items-center justify-center gap-2 py-1">
+          <button
+            onClick={handleToggleWishlist}
+            disabled={isTogglingLiked || isCheckingLiked}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors self-start"
+            aria-label={isLiked ? "Remove from wish list" : "Add to wish list"}
+            data-testid="wishlist-button"
+          >
+            <span className={isLiked ? "text-red-500" : ""}>
+              <Heart size="16" color={isLiked ? "#ef4444" : "currentColor"} />
+            </span>
+            <span className="underline">
+              {isLiked ? "Remove from Wish List" : "Add to Wish List"}
+            </span>
+          </button>
+        </div>
         <MobileActions
           product={product}
           variant={selectedVariant}
@@ -192,6 +338,11 @@ export default function ProductActions({
           isAdding={isAdding}
           show={!inView}
           optionsDisabled={!!disabled || isAdding}
+          quantity={quantity}
+          onQuantityChange={handleQuantityChange}
+          onIncrement={incrementQuantity}
+          onDecrement={decrementQuantity}
+          quantityDisabled={!!disabled || isAdding}
         />
       </div>
     </>
