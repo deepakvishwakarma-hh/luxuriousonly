@@ -259,3 +259,32 @@ export const updateCustomerAddress = async (
       return { success: false, error: err.toString() }
     })
 }
+
+export async function forgotPassword(
+  _currentState: unknown,
+  formData: FormData
+): Promise<string | null> {
+  const email = formData.get("email") as string
+
+  if (!email) {
+    return "Email is required"
+  }
+
+  try {
+    // TODO: Implement email sending functionality
+    // This is where you would:
+    // 1. Verify the email exists in the system
+    // 2. Generate a reset token
+    // 3. Send the reset link via email
+    // 4. Store the token with expiration in the database
+
+    // For now, we'll just return success
+    // In a real implementation, you would use the Medusa SDK or your email service
+    // await sdk.store.customer.requestPasswordReset({ email })
+    // or similar API call
+
+    return null // Success - no error message
+  } catch (error: any) {
+    return error.toString()
+  }
+}
