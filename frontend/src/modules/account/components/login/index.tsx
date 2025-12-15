@@ -4,7 +4,9 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import Input from "@modules/common/components/input"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import GoogleLoginButton from "@modules/account/components/google-login-button"
 import { useActionState } from "react"
+import { useParams } from "next/navigation"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
@@ -12,6 +14,8 @@ type Props = {
 
 const Login = ({ setCurrentView }: Props) => {
   const [message, formAction] = useActionState(login, null)
+  const params = useParams()
+  const countryCode = params?.countryCode as string | undefined
 
   return (
     <div
@@ -22,6 +26,18 @@ const Login = ({ setCurrentView }: Props) => {
       <p className="text-center text-base-regular text-ui-fg-base mb-8">
         Sign in to access an enhanced shopping experience.
       </p>
+      
+      {/* Google Login Button */}
+      <div className="w-full mb-6">
+        <GoogleLoginButton countryCode={countryCode} />
+      </div>
+
+      <div className="w-full flex items-center gap-4 mb-6">
+        <div className="flex-1 h-px bg-ui-border-base" />
+        <span className="text-small-regular text-ui-fg-muted">OR</span>
+        <div className="flex-1 h-px bg-ui-border-base" />
+      </div>
+
       <form className="w-full" action={formAction}>
         <div className="flex flex-col w-full gap-y-2">
           <Input
