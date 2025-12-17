@@ -152,6 +152,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "metadata",
         "created_at",
         "updated_at",
+        "images.*",
         "variants.*",
         "variants.inventory_items.inventory_item.location_levels.location_id",
         "variants.inventory_items.inventory_item.location_levels.stocked_quantity",
@@ -171,7 +172,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       metadata: { count } = {},
     } = await query.graph(queryConfig)
 
-    // CSV Headers - Base fields + SKU + All extra fields + Sales Channel ID + Location ID + Stock (no variant fields)
+    // CSV Headers - Base fields + SKU + Images + All extra fields + Sales Channel ID + Location ID + Stock (no variant fields)
     const headers = [
       "product_id",
       "Title",
@@ -181,6 +182,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "Status",
       "Subtitle",
       "Thumbnail",
+      "Images",
       "sales_channel_id",
       "location_id",
       "stock",
@@ -220,6 +222,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         }
       }
 
+      // Extract images (comma-separated URLs)
+      let imagesValue = ""
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        imagesValue = product.images.map((img: any) => img.url || "").filter(Boolean).join(",")
+      }
+
       // Create one row per product (variants are handled automatically)
       const row = [
         product.id || "",
@@ -230,6 +238,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         product.status || "",
         product.subtitle || "",
         product.thumbnail || "",
+        imagesValue,
         salesChannelId,
         locationId,
         stock,

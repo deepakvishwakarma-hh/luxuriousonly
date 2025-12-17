@@ -149,6 +149,7 @@ const ProductImportExportPage = () => {
       "Status",
       "Subtitle",
       "Thumbnail",
+      "Images",
       "sales_channel_id",
       "location_id",
       "stock",
@@ -226,8 +227,14 @@ const ProductImportExportPage = () => {
         handle: "classic-aviator-sunglasses",
         status: "published",
         subtitle: "Premium Quality",
-        thumbnail: "https://example.com/aviator.jpg",
+        thumbnail:
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
         sku: "AVI-001",
+        images: [
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+        ],
         variantTitle: "Black / 58mm",
         priceAmount: "12999",
         currencyCode: "USD",
@@ -304,8 +311,13 @@ const ProductImportExportPage = () => {
         handle: "round-retro-glasses",
         status: "published",
         subtitle: "Vintage Style",
-        thumbnail: "https://example.com/round.jpg",
+        thumbnail:
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
         sku: "RND-002",
+        images: [
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+        ],
         variantTitle: "Tortoise / 52mm",
         priceAmount: "8999",
         currencyCode: "USD",
@@ -382,8 +394,14 @@ const ProductImportExportPage = () => {
         handle: "cat-eye-sunglasses",
         status: "published",
         subtitle: "Fashion Forward",
-        thumbnail: "https://example.com/cateye.jpg",
+        thumbnail:
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
         sku: "CAT-003",
+        images: [
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
+        ],
         variantTitle: "Gold / 54mm",
         priceAmount: "14999",
         currencyCode: "USD",
@@ -460,8 +478,13 @@ const ProductImportExportPage = () => {
         handle: "square-frame-glasses",
         status: "published",
         subtitle: "Blue Light Protection",
-        thumbnail: "https://example.com/square.jpg",
+        thumbnail:
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
         sku: "SQR-004",
+        images: [
+          "https://example.com/square-front.jpg",
+          "https://example.com/square-side.jpg",
+        ],
         variantTitle: "Black / 56mm",
         priceAmount: "7999",
         currencyCode: "USD",
@@ -539,8 +562,14 @@ const ProductImportExportPage = () => {
         handle: "oversized-sunglasses",
         status: "published",
         subtitle: "Maximum Coverage",
-        thumbnail: "https://example.com/oversized.jpg",
+        thumbnail:
+          "http://localhost:9000/static/1765534185300-prada-pr-65zs-zvn09t-pale-gold-8056597877329-1000x1000w.jpg",
         sku: "OVR-005",
+        images: [
+          "https://example.com/oversized-front.jpg",
+          "https://example.com/oversized-side.jpg",
+          "https://example.com/oversized-back.jpg",
+        ],
         variantTitle: "Brown / 62mm",
         priceAmount: "16999",
         currencyCode: "USD",
@@ -629,6 +658,12 @@ const ProductImportExportPage = () => {
     const csvRows = [headers.join(",")];
 
     sampleProducts.forEach((product) => {
+      // Format images as comma-separated URLs
+      const imagesValue =
+        product.images && Array.isArray(product.images)
+          ? product.images.join(",")
+          : "";
+
       const row = [
         product.title,
         product.description,
@@ -637,6 +672,7 @@ const ProductImportExportPage = () => {
         product.status,
         product.subtitle,
         product.thumbnail,
+        imagesValue, // Images - comma-separated URLs
         "", // sales_channel_id - leave empty to use first available
         "", // location_id - leave empty to use first available
         "0", // stock - default to 0
@@ -732,9 +768,9 @@ const ProductImportExportPage = () => {
   };
 
   // Generate CSV example with all fields
-  const csvExample = `Title,Description,Handle,SKU,Status,Subtitle,Thumbnail,sales_channel_id,location_id,stock,days_of_deliery,max_days_of_delivery,days_of_delivery_out_of_stock,max_days_of_delivery_out_of_stock,days_of_delivery_backorders,delivery_note,disebled_days,seo_title,meta_description,slug,focus_keyphrase,keyphrase_synonyms,related_keyphrases,canonical_url,robots_index,robots_follow,robots_advanced,breadcrumb_title,schema_type,schema_subtype,article_type,product_schema,faq_schema,og_title,og_description,og_image,twitter_title,twitter_description,twitter_image,cornerstone,seo_score,readability_score,item_no,condition,lens width,lens bridge,arm length,model,color_code,EAN,gender,rim style,shapes,frame_material,size,lens_weight,lens_bridge,arm_length,department,gtin,mpn,brand,condition,gender,size,size_system,size_type,color,material,pattern,age_group,multipack,is_bundle,availablity_date,adult_content
-"Product 1","This is a description","product-1","PROD-001","published","Subtitle","https://example.com/image.jpg","","",10,5,10,7,14,3,"Delivery note","Mon,Tue",SEO Title,Meta description,product-1,keyphrase,"synonym1,synonym2","related1,related2",https://example.com/product-1,index,follow,"noindex,nofollow",Breadcrumb,Product,Subtype,Article,"{}","[]",OG Title,OG Description,https://example.com/og.jpg,Twitter Title,Twitter Description,https://example.com/twitter.jpg,true,90,85,ITEM001,New,50,18,140,Model A,BLUE,EAN123456789,Male,Full Rim,Round,Acetate,L,25,18,140,Optical,GTIN123,MPN001,Brand Name,New,Male,L,US,Regular,Blue,Plastic,Solid,adult,1,false,2024-01-01,false
-"Product 2","Another description","product-2","PROD-002","published","Subtitle 2","https://example.com/image2.jpg","","",20,7,14,10,21,5,"Express delivery","Sat,Sun",SEO Title 2,Meta description 2,product-2,keyphrase2,"synonym3","related3",https://example.com/product-2,index,follow,"",Breadcrumb 2,Product,Subtype,Article,"{}","[]",OG Title 2,OG Description 2,https://example.com/og2.jpg,Twitter Title 2,Twitter Description 2,https://example.com/twitter2.jpg,false,85,80,ITEM002,Used,52,19,145,Model B,RED,EAN987654321,Female,Half Rim,Square,Metal,M,28,19,145,Optical,GTIN456,MPN002,Brand Name 2,Used,Female,M,EU,Regular,Red,Metal,Striped,adult,1,false,2024-02-01,false`;
+  const csvExample = `Title,Description,Handle,SKU,Status,Subtitle,Thumbnail,Images,sales_channel_id,location_id,stock,days_of_deliery,max_days_of_delivery,days_of_delivery_out_of_stock,max_days_of_delivery_out_of_stock,days_of_delivery_backorders,delivery_note,disebled_days,seo_title,meta_description,slug,focus_keyphrase,keyphrase_synonyms,related_keyphrases,canonical_url,robots_index,robots_follow,robots_advanced,breadcrumb_title,schema_type,schema_subtype,article_type,product_schema,faq_schema,og_title,og_description,og_image,twitter_title,twitter_description,twitter_image,cornerstone,seo_score,readability_score,item_no,condition,lens width,lens bridge,arm length,model,color_code,EAN,gender,rim style,shapes,frame_material,size,lens_weight,lens_bridge,arm_length,department,gtin,mpn,brand,condition,gender,size,size_system,size_type,color,material,pattern,age_group,multipack,is_bundle,availablity_date,adult_content
+"Product 1","This is a description","product-1","PROD-001","published","Subtitle","https://example.com/image.jpg","https://example.com/img1.jpg,https://example.com/img2.jpg","","",10,5,10,7,14,3,"Delivery note","Mon,Tue",SEO Title,Meta description,product-1,keyphrase,"synonym1,synonym2","related1,related2",https://example.com/product-1,index,follow,"noindex,nofollow",Breadcrumb,Product,Subtype,Article,"{}","[]",OG Title,OG Description,https://example.com/og.jpg,Twitter Title,Twitter Description,https://example.com/twitter.jpg,true,90,85,ITEM001,New,50,18,140,Model A,BLUE,EAN123456789,Male,Full Rim,Round,Acetate,L,25,18,140,Optical,GTIN123,MPN001,Brand Name,New,Male,L,US,Regular,Blue,Plastic,Solid,adult,1,false,2024-01-01,false
+"Product 2","Another description","product-2","PROD-002","published","Subtitle 2","https://example.com/image2.jpg","https://example.com/img3.jpg,https://example.com/img4.jpg","","",20,7,14,10,21,5,"Express delivery","Sat,Sun",SEO Title 2,Meta description 2,product-2,keyphrase2,"synonym3","related3",https://example.com/product-2,index,follow,"",Breadcrumb 2,Product,Subtype,Article,"{}","[]",OG Title 2,OG Description 2,https://example.com/og2.jpg,Twitter Title 2,Twitter Description 2,https://example.com/twitter2.jpg,false,85,80,ITEM002,Used,52,19,145,Model B,RED,EAN987654321,Female,Half Rim,Square,Metal,M,28,19,145,Optical,GTIN456,MPN002,Brand Name 2,Used,Female,M,EU,Regular,Red,Metal,Striped,adult,1,false,2024-02-01,false`;
 
   return (
     <Container>

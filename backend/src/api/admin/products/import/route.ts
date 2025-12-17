@@ -222,6 +222,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const titleIndex = normalizedHeaders.findIndex((h) => h === "title")
     const handleIndex = normalizedHeaders.findIndex((h) => h === "handle")
     const skuIndex = normalizedHeaders.findIndex((h) => h === "sku")
+    const imagesIndex = normalizedHeaders.findIndex((h) => h === "images" || h === "image")
     const salesChannelIdIndex = normalizedHeaders.findIndex((h) => h === "sales_channel_id" || h === "sales channel id")
     const locationIdIndex = normalizedHeaders.findIndex((h) => h === "location_id" || h === "location id")
     const stockIndex = normalizedHeaders.findIndex((h) => h === "stock")
@@ -358,6 +359,32 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       // Store location and stock for later inventory level creation
       productLocationStockMap.push({ locationId, stock, sku })
 
+      // Parse images from CSV (can be comma-separated URLs or JSON array)
+      let images: Array<{ url: string }> = []
+      if (imagesIndex !== -1) {
+        const imagesValue = row[imagesIndex]?.trim()
+        if (imagesValue) {
+          try {
+            // Try to parse as JSON first
+            const parsed = JSON.parse(imagesValue)
+            if (Array.isArray(parsed)) {
+              images = parsed.map((img: any) => {
+                if (typeof img === "string") {
+                  return { url: img }
+                }
+                return { url: img.url || img }
+              })
+            } else {
+              images = [{ url: parsed }]
+            }
+          } catch {
+            // If not JSON, treat as comma-separated URLs
+            const urls = imagesValue.split(",").map((url) => url.trim()).filter(Boolean)
+            images = urls.map((url) => ({ url }))
+          }
+        }
+      }
+
       // Build product data
       const productData: any = {
         title,
@@ -366,6 +393,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         status: row[normalizedHeaders.findIndex((h) => h === "status")] || "draft",
         subtitle: row[normalizedHeaders.findIndex((h) => h === "subtitle")] || "",
         thumbnail: row[normalizedHeaders.findIndex((h) => h === "thumbnail")] || "",
+        images: images.length > 0 ? images : undefined,
         metadata,
         sales_channels: salesChannelId ? [{ id: salesChannelId }] : [],
         options: [
