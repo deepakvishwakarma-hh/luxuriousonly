@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { batchProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
+import { batchProductsWorkflow, createInventoryLevelsWorkflow, batchVariantImagesWorkflow } from "@medusajs/medusa/core-flows"
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 type ImportRequestBody = {
@@ -414,6 +414,8 @@ async function processProductRow(
     length: row[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
     width: row[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
     height: row[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
+    // Store main variant images separately for later association
+    _variantImages: images.length > 0 ? images : undefined,
     metadata: { ...metadata },
   }
 
@@ -431,6 +433,33 @@ async function processProductRow(
 
     const variantMetadata = extractMetadata(headers, variantRow)
 
+    // Parse variant images from CSV (can be pipe-separated URLs or JSON array)
+    let variantImages: Array<{ url: string }> = []
+    if (imagesIndex !== -1) {
+      const variantImagesValue = variantRow[imagesIndex]?.trim()
+      if (variantImagesValue) {
+        try {
+          // Try to parse as JSON first
+          const parsed = JSON.parse(variantImagesValue)
+          if (Array.isArray(parsed)) {
+            variantImages = parsed.map((img: any) => {
+              if (typeof img === "string") {
+                return { url: img }
+              }
+              return { url: img.url || img }
+            })
+          } else {
+            variantImages = [{ url: parsed }]
+          }
+        } catch {
+          // If not JSON, treat as pipe-separated URLs (or comma-separated)
+          const separator = variantImagesValue.includes("|") ? "|" : ","
+          const urls = variantImagesValue.split(separator).map((url) => url.trim()).filter(Boolean)
+          variantImages = urls.map((url) => ({ url }))
+        }
+      }
+    }
+
     const variant: any = {
       title: variantName,
       sku: variantSku || undefined,
@@ -447,10 +476,24 @@ async function processProductRow(
       length: variantRow[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
       width: variantRow[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
       height: variantRow[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
+      // Don't add images directly to variants - they will be associated after product creation
+      // Store variant images separately for later association
+      _variantImages: variantImages.length > 0 ? variantImages : undefined,
       metadata: { ...variantMetadata },
     }
 
     variants.push(variant)
+
+    // Add variant images to product images if they're not already there
+    if (variantImages.length > 0) {
+      for (const variantImage of variantImages) {
+        const imageUrl = variantImage.url
+        // Check if this image URL is already in the product images
+        if (!images.some((img) => img.url === imageUrl)) {
+          images.push(variantImage)
+        }
+      }
+    }
   }
 
   // Determine product status based on published field (0 = draft, 1 = published)
@@ -468,6 +511,18 @@ async function processProductRow(
     const statusIndex = normalizedHeaders.findIndex((h) => h === "status")
     if (statusIndex !== -1) {
       productStatus = row[statusIndex]?.trim() || "draft"
+    }
+  }
+
+  // Ensure fallback image is included in product images if no images exist
+  if (images.length === 0) {
+    images.push({ url: FALLBACK_VARIANT_IMAGE_URL })
+  } else {
+    // Check if fallback image is already in the images array
+    const hasFallback = images.some((img) => img.url === FALLBACK_VARIANT_IMAGE_URL)
+    if (!hasFallback) {
+      // Add fallback image to product images
+      images.push({ url: FALLBACK_VARIANT_IMAGE_URL })
     }
   }
 
@@ -493,9 +548,114 @@ async function processProductRow(
     variants,
   }
 
+  // Clean up _variantImages from variants before sending to batchProductsWorkflow
+  // (they're stored separately for later association)
+  if (productData.variants) {
+    for (const variant of productData.variants) {
+      delete variant._variantImages
+    }
+  }
+
   return {
     productData,
     locationStock: { locationId, stock, sku },
+  }
+}
+
+// Fallback image URL to use when no variant images are found
+const FALLBACK_VARIANT_IMAGE_URL = "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg"
+
+// Helper function to associate variant images after batch operations
+// Uses Medusa's batch variant images endpoint: POST /admin/products/:id/variants/:variant_id/images/batch
+async function associateVariantImages(
+  scope: any,
+  query: any,
+  createdProducts: any[],
+  batchVariantsImages: Array<Array<{ sku?: string; images: Array<{ url: string }> }>>
+): Promise<void> {
+  for (let i = 0; i < createdProducts.length; i++) {
+    const product = createdProducts[i]
+    const variantsImages = batchVariantsImages[i] || []
+
+    if (!product.id) continue
+
+    // Query the product with variants and images
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: [
+        "id",
+        "variants.id",
+        "variants.sku",
+        "images.id",
+        "images.url",
+      ],
+      filters: {
+        id: product.id,
+      },
+    })
+
+    if (!products || products.length === 0) continue
+
+    const productData = products[0]
+    if (!productData.variants || !productData.images) continue
+
+    // Create a map of image URLs to image IDs
+    const imageUrlToIdMap = new Map<string, string>()
+    for (const image of productData.images) {
+      if (image.url) {
+        imageUrlToIdMap.set(image.url, image.id)
+      }
+    }
+
+    // Get fallback image ID if it exists in the product
+    const fallbackImageId = imageUrlToIdMap.get(FALLBACK_VARIANT_IMAGE_URL)
+
+    // Process all variants, even if they don't have images in batchVariantsImages
+    for (const variant of productData.variants) {
+      let imageIds: string[] = []
+
+      // Try to find variant images from batchVariantsImages
+      if (variantsImages.length > 0) {
+        const variantImageData = variantsImages.find((vi) => vi.sku === variant.sku)
+        if (variantImageData && variantImageData.images && variantImageData.images.length > 0) {
+          // Collect image IDs for this variant
+          for (const imageData of variantImageData.images) {
+            const imageId = imageUrlToIdMap.get(imageData.url)
+            if (imageId) {
+              imageIds.push(imageId)
+            }
+          }
+        }
+      }
+
+      // If no images found and fallback image exists, use fallback
+      if (imageIds.length === 0 && fallbackImageId) {
+        console.log(`No images found for variant ${variant.id} (SKU: ${variant.sku}), using fallback image`)
+        imageIds = [fallbackImageId]
+      }
+
+      // Skip if still no images
+      if (imageIds.length === 0) {
+        console.log(`No images found for variant ${variant.id} (SKU: ${variant.sku}) and fallback image not available`)
+        continue
+      }
+
+      // Use batchVariantImagesWorkflow to associate variant images
+      try {
+        const { result } = await batchVariantImagesWorkflow(scope).run({
+          input: {
+            variant_id: variant.id,
+            add: imageIds,
+            remove: [],
+          },
+        })
+
+        console.log(`Associated ${result.added.length} images with variant ${variant.id} (SKU: ${variant.sku})`)
+      } catch (workflowError) {
+        console.error(`Error associating variant images for variant ${variant.id}:`, workflowError)
+        // Continue with next variant
+      }
+    }
   }
 }
 
@@ -602,6 +762,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const productsToUpdate: any[] = []
     const productLocationStockMap: Array<{ locationId: string; stock: number; sku?: string }> = []
     const skuToLocationStockMap = new Map<string, { locationId: string; stock: number }>()
+    // Map product title/SKU to variant images (extracted before cleanup)
+    const productVariantImagesMap = new Map<string, Array<{ sku?: string; images: Array<{ url: string }> }>>()
 
     // First pass: collect all SKUs, extract brand/model, and prepare for grouping
     const skusToCheck: string[] = []
@@ -719,6 +881,23 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       if (mainProductProcessed) {
         const { productData, locationStock } = mainProductProcessed
 
+        // Extract variant images BEFORE cleanup (store them for later association)
+        const variantImagesForProduct: Array<{ sku?: string; images: Array<{ url: string }> }> = []
+        if (productData.variants) {
+          for (const variant of productData.variants) {
+            if (variant._variantImages && variant._variantImages.length > 0) {
+              variantImagesForProduct.push({
+                sku: variant.sku,
+                images: variant._variantImages,
+              })
+            }
+          }
+        }
+        // Store variant images by product title for later retrieval
+        if (variantImagesForProduct.length > 0) {
+          productVariantImagesMap.set(productData.title, variantImagesForProduct)
+        }
+
         // Store location/stock for all variants (main + grouped variants)
         productLocationStockMap.push(locationStock) // Main product
 
@@ -786,6 +965,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // Track which products were created/updated for inventory level mapping
     // Map product index to variants with their stock info
     const productToVariantsStockMap = new Map<number, Array<{ sku?: string; locationId: string; stock: number }>>()
+    // Map product index to variants with their images info
+    const productToVariantsImagesMap = new Map<number, Array<{ sku?: string; images: Array<{ url: string }> }>>()
     let createIndex = 0
 
     // Rebuild mapping based on grouped products
@@ -800,8 +981,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       if (!mainSku || !existingProductsMap.has(mainSku)) {
         // This is a create - collect all variant stock info
         const variantStocks: Array<{ sku?: string; locationId: string; stock: number }> = []
+        const variantImages: Array<{ sku?: string; images: Array<{ url: string }> }> = []
 
-        // Add main product stock
+        // Add main product stock and images
         const mainLocationStock = skuToLocationStockMap.get(mainSku || "")
         if (mainLocationStock) {
           variantStocks.push({
@@ -810,8 +992,19 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           })
         }
 
+        // Get variant images from the stored map (extracted before cleanup)
+        const mainProductData = groupProducts[0]
+        const mainRowData = mainProductData.data
+        const storedVariantImages = productVariantImagesMap.get(mainRowData.name)
+
+        if (storedVariantImages && storedVariantImages.length > 0) {
+          // Add all variant images from stored map
+          variantImages.push(...storedVariantImages)
+        }
+
         // Add variant stocks
-        for (const variantProduct of groupProducts.slice(1)) {
+        for (let variantIdx = 1; variantIdx < groupProducts.length; variantIdx++) {
+          const variantProduct = groupProducts[variantIdx]
           const { data: variantRowData } = variantProduct
           const { sku: variantSku } = variantRowData
           const variantLocationStock = skuToLocationStockMap.get(variantSku || "")
@@ -824,6 +1017,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
 
         productToVariantsStockMap.set(createIndex, variantStocks)
+        productToVariantsImagesMap.set(createIndex, variantImages)
         createIndex++
       }
     }
@@ -845,6 +1039,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           update: [],
         },
       })
+
+      console.log("Batch create result:", JSON.stringify(result, null, 2))
 
       totalCreated += result.created?.length || 0
 
@@ -965,6 +1161,23 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             // Continue even if inventory level creation fails
           }
         }
+
+        // Associate variant images if any
+        const batchVariantsImages: Array<Array<{ sku?: string; images: Array<{ url: string }> }>> = []
+        for (let j = 0; j < result.created.length; j++) {
+          const batchIndex = createBatchStartIndex - batch.length + j
+          const variantsImages = productToVariantsImagesMap.get(batchIndex) || []
+          batchVariantsImages.push(variantsImages)
+        }
+
+        if (batchVariantsImages.length > 0) {
+          try {
+            await associateVariantImages(req.scope, query, result.created, batchVariantsImages)
+          } catch (imageError) {
+            console.error("Error associating variant images:", imageError)
+            // Continue even if variant image association fails
+          }
+        }
       }
     }
 
@@ -991,6 +1204,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           update: batch,
         },
       })
+
+      console.log("Batch update result:", JSON.stringify(result, null, 2))
 
       totalUpdated += result.updated?.length || 0
 
