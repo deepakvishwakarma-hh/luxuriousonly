@@ -158,3 +158,176 @@ export const listProductsWithSort = async ({
     queryParams,
   }
 }
+
+export type FilterProductsParams = {
+  search?: string
+  brand_id?: string
+  brand_slug?: string
+  category_id?: string | string[]
+  category_name?: string | string[]
+  rim_style?: string | string[]
+  gender?: string | string[]
+  shapes?: string | string[]
+  size?: string | string[]
+  min_price?: number
+  max_price?: number
+  currency_code?: string
+  order?: "created_at" | "updated_at" | "title" | "price"
+  order_direction?: "asc" | "desc"
+  limit?: number
+  offset?: number
+  include_filter_options?: boolean
+}
+
+export type FilterProductsResponse = {
+  products: any[]
+  count: number
+  limit: number
+  offset: number
+  has_more: boolean
+  filter_options?: {
+    brands: Array<{ id: string; name: string; slug: string }>
+    categories: Array<{ id: string; name: string; handle: string }>
+    rim_styles: string[]
+    genders: string[]
+    shapes: string[]
+    sizes: string[]
+  }
+}
+
+export const filterProducts = async ({
+  countryCode,
+  regionId,
+  ...filterParams
+}: FilterProductsParams & {
+  countryCode?: string
+  regionId?: string
+}): Promise<FilterProductsResponse> => {
+  if (!countryCode && !regionId) {
+    throw new Error("Country code or region ID is required")
+  }
+
+  let region: HttpTypes.StoreRegion | undefined | null
+
+  if (countryCode) {
+    region = await getRegion(countryCode)
+  } else {
+    region = await retrieveRegion(regionId!)
+  }
+
+  if (!region) {
+    return {
+      products: [],
+      count: 0,
+      limit: filterParams.limit || 20,
+      offset: filterParams.offset || 0,
+      has_more: false,
+    }
+  }
+
+  const authHeaders = await getAuthHeaders()
+  const headers: Record<string, string> = {
+    ...authHeaders,
+  }
+
+  // Ensure publishable API key is included if SDK doesn't add it automatically
+  if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY && !headers['x-publishable-api-key']) {
+    headers['x-publishable-api-key'] = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  }
+
+  try {
+    // Build query parameters
+    const query: Record<string, any> = {
+      currency_code: filterParams.currency_code || "USD",
+      limit: filterParams.limit || 20,
+      offset: filterParams.offset || 0,
+      include_filter_options: filterParams.include_filter_options || false,
+    }
+
+    if (filterParams.search) {
+      query.search = filterParams.search
+    }
+    if (filterParams.brand_id) {
+      query.brand_id = filterParams.brand_id
+    }
+    if (filterParams.brand_slug) {
+      query.brand_slug = filterParams.brand_slug
+    }
+    if (filterParams.category_id) {
+      query.category_id = Array.isArray(filterParams.category_id)
+        ? filterParams.category_id.join(",")
+        : filterParams.category_id
+    }
+    if (filterParams.category_name) {
+      query.category_name = Array.isArray(filterParams.category_name)
+        ? filterParams.category_name.join(",")
+        : filterParams.category_name
+    }
+    if (filterParams.rim_style) {
+      query.rim_style = Array.isArray(filterParams.rim_style)
+        ? filterParams.rim_style.join(",")
+        : filterParams.rim_style
+    }
+    if (filterParams.gender) {
+      query.gender = Array.isArray(filterParams.gender)
+        ? filterParams.gender.join(",")
+        : filterParams.gender
+    }
+    if (filterParams.shapes) {
+      query.shapes = Array.isArray(filterParams.shapes)
+        ? filterParams.shapes.join(",")
+        : filterParams.shapes
+    }
+    if (filterParams.size) {
+      query.size = Array.isArray(filterParams.size)
+        ? filterParams.size.join(",")
+        : filterParams.size
+    }
+    if (filterParams.min_price !== undefined) {
+      query.min_price = filterParams.min_price
+    }
+    if (filterParams.max_price !== undefined) {
+      query.max_price = filterParams.max_price
+    }
+    if (filterParams.order) {
+      query.order = filterParams.order
+    }
+    if (filterParams.order_direction) {
+      query.order_direction = filterParams.order_direction
+    }
+
+    const response = await sdk.client.fetch<FilterProductsResponse>(
+      `/store/products/filter`,
+      {
+        method: "GET",
+        query,
+        headers,
+        cache: "no-store",
+      }
+    )
+
+    return response || {
+      products: [],
+      count: 0,
+      limit: filterParams.limit || 20,
+      offset: filterParams.offset || 0,
+      has_more: false,
+    }
+  } catch (error: any) {
+    console.error("[filterProducts] API Error:", {
+      message: error?.message,
+      status: error?.status,
+      regionId: region?.id,
+      countryCode,
+      error: error,
+    })
+
+    return {
+      products: [],
+      count: 0,
+      limit: filterParams.limit || 20,
+      offset: filterParams.offset || 0,
+      has_more: false,
+    }
+  }
+}

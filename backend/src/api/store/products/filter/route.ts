@@ -3,7 +3,7 @@
  * 
  * GET /store/products/filter
  * 
- * Filter products by brand, category, metadata fields, and price range.
+ * Filter products by brand, category, metadata fields, attributes, and price range.
  * 
  * Query Parameters:
  * - brand_id: Filter by brand ID (string)
@@ -18,19 +18,26 @@
  *   Examples:
  *     - JSON string: ?metadata={"gender":"male","size":"large"}
  *     - Query params: ?metadata_gender=male&metadata_size=large
+ * - rim_style: Filter by rim style - comma-separated or array (string | string[])
+ * - gender: Filter by gender - comma-separated or array (string | string[])
+ * - shapes: Filter by shapes - comma-separated or array (string | string[])
+ * - size: Filter by size - comma-separated or array (string | string[])
  * - limit: Number of results per page (1-100, default: 20)
  * - offset: Pagination offset (default: 0)
- * - order: Sort field - "created_at" | "updated_at" | "title" (default: "created_at")
+ * - order: Sort field - "created_at" | "updated_at" | "title" | "price" (default: "created_at")
  * - order_direction: Sort direction - "asc" | "desc" (default: "desc")
  * - status: Filter by product status - "draft" | "published" | "proposed" | "rejected"
+ * - include_filter_options: Include available filter options in response (boolean, default: false)
  * 
  * Examples:
  * - Filter by brand: /store/products/filter?brand_slug=nike
  * - Filter by category: /store/products/filter?category_name=Shirts
  * - Search by title: /store/products/filter?search=nike
  * - Filter by price: /store/products/filter?min_price=10&max_price=100
- * - Filter by metadata: /store/products/filter?metadata_gender=male&metadata_size=large
- * - Combined filters: /store/products/filter?brand_slug=nike&min_price=50&max_price=200&category_name=Shirts&search=sneakers
+ * - Filter by attributes: /store/products/filter?gender=Male&rim_style=Full Rim
+ * - Sort by price: /store/products/filter?order=price&order_direction=asc
+ * - Get filter options: /store/products/filter?include_filter_options=true
+ * - Combined filters: /store/products/filter?brand_slug=nike&min_price=50&max_price=200&category_name=Shirts&gender=Male&rim_style=Full Rim
  */
 
 import type {
@@ -100,11 +107,32 @@ const ProductFilterSchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 
   // Sorting
-  order: z.enum(["created_at", "updated_at", "title"]).default("created_at"),
+  order: z.enum(["created_at", "updated_at", "title", "price"]).default("created_at"),
   order_direction: z.enum(["asc", "desc"]).default("desc"),
 
   // Status filter
   status: z.enum(["draft", "published", "proposed", "rejected"]).optional(),
+
+  // Direct attribute filters (also supported via metadata)
+  rim_style: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  gender: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  shapes: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  size: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+
+  // Include filter options in response
+  include_filter_options: z.coerce.boolean().default(false),
 })
 
 export async function GET(
@@ -242,13 +270,23 @@ export async function GET(
       queryConfig.filters.status = parsedQuery.status
     }
 
-    // Determine if we need post-filtering (metadata, price, brand, category, or search filters)
+    // Extract direct attribute filters
+    const rimStyleFilters = parsedQuery.rim_style ? (Array.isArray(parsedQuery.rim_style) ? parsedQuery.rim_style : [parsedQuery.rim_style]) : undefined
+    const genderFilters = parsedQuery.gender ? (Array.isArray(parsedQuery.gender) ? parsedQuery.gender : [parsedQuery.gender]) : undefined
+    const shapesFilters = parsedQuery.shapes ? (Array.isArray(parsedQuery.shapes) ? parsedQuery.shapes : [parsedQuery.shapes]) : undefined
+    const sizeFilters = parsedQuery.size ? (Array.isArray(parsedQuery.size) ? parsedQuery.size : [parsedQuery.size]) : undefined
+
+    // Determine if we need post-filtering (metadata, price, brand, category, search, or attribute filters)
     const needsPostFiltering = parsedQuery.metadata !== undefined ||
       parsedQuery.min_price !== undefined ||
       parsedQuery.max_price !== undefined ||
       categoryIdsToFilter !== undefined ||
       brandIdToFilter !== undefined ||
-      searchTerm !== undefined
+      searchTerm !== undefined ||
+      rimStyleFilters !== undefined ||
+      genderFilters !== undefined ||
+      shapesFilters !== undefined ||
+      sizeFilters !== undefined
 
     // If we need post-filtering, fetch more products to account for filtering
     // Otherwise, use normal pagination
@@ -296,6 +334,51 @@ export async function GET(
         // Check if product has any of the specified categories
         return product.categories.some((category: any) =>
           category && categoryIdsToFilter.includes(category.id)
+        )
+      })
+    }
+
+    // Filter by direct attribute filters (rim_style, gender, shapes, size)
+    if (rimStyleFilters && rimStyleFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productRimStyle = product.metadata?.["rim style"] || product.metadata?.rim_style
+        if (!productRimStyle) return false
+        const productRimStyleStr = String(productRimStyle).toLowerCase()
+        return rimStyleFilters.some((filter: string) =>
+          productRimStyleStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (genderFilters && genderFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productGender = product.metadata?.gender
+        if (!productGender) return false
+        const productGenderStr = String(productGender).toLowerCase()
+        return genderFilters.some((filter: string) =>
+          productGenderStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (shapesFilters && shapesFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productShapes = product.metadata?.shapes
+        if (!productShapes) return false
+        const productShapesStr = String(productShapes).toLowerCase()
+        return shapesFilters.some((filter: string) =>
+          productShapesStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (sizeFilters && sizeFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productSize = product.metadata?.size
+        if (!productSize) return false
+        const productSizeStr = String(productSize).toLowerCase()
+        return sizeFilters.some((filter: string) =>
+          productSizeStr === filter.toLowerCase()
         )
       })
     }
@@ -403,6 +486,38 @@ export async function GET(
       let bValue: any
 
       switch (parsedQuery.order) {
+        case "price":
+          // Get minimum price for each product
+          const aPrices: number[] = []
+          const bPrices: number[] = []
+
+          if (a.variants && Array.isArray(a.variants)) {
+            a.variants.forEach((variant: any) => {
+              if (variant.price_set?.prices) {
+                variant.price_set.prices.forEach((price: any) => {
+                  if (price.currency_code === parsedQuery.currency_code) {
+                    aPrices.push(price.amount)
+                  }
+                })
+              }
+            })
+          }
+
+          if (b.variants && Array.isArray(b.variants)) {
+            b.variants.forEach((variant: any) => {
+              if (variant.price_set?.prices) {
+                variant.price_set.prices.forEach((price: any) => {
+                  if (price.currency_code === parsedQuery.currency_code) {
+                    bPrices.push(price.amount)
+                  }
+                })
+              }
+            })
+          }
+
+          aValue = aPrices.length > 0 ? Math.min(...aPrices) : Infinity
+          bValue = bPrices.length > 0 ? Math.min(...bPrices) : Infinity
+          break
         case "created_at":
           aValue = new Date(a.created_at).getTime()
           bValue = new Date(b.created_at).getTime()
@@ -567,13 +682,88 @@ export async function GET(
       }
     })
 
-    return res.json({
+    // Extract filter options from all fetched products (before pagination)
+    let filterOptions: any = null
+    if (parsedQuery.include_filter_options) {
+      const allBrands = new Map<string, { id: string; name: string; slug: string }>()
+      const allCategories = new Map<string, { id: string; name: string; handle: string }>()
+      const rimStyles = new Set<string>()
+      const genders = new Set<string>()
+      const shapes = new Set<string>()
+      const sizes = new Set<string>()
+
+      filteredProducts.forEach((product: any) => {
+        // Collect brands
+        if (product.brand) {
+          if (!allBrands.has(product.brand.id)) {
+            allBrands.set(product.brand.id, {
+              id: product.brand.id,
+              name: product.brand.name,
+              slug: product.brand.slug,
+            })
+          }
+        }
+
+        // Collect categories
+        if (product.categories && Array.isArray(product.categories)) {
+          product.categories.forEach((cat: any) => {
+            if (cat && !allCategories.has(cat.id)) {
+              allCategories.set(cat.id, {
+                id: cat.id,
+                name: cat.name,
+                handle: cat.handle,
+              })
+            }
+          })
+        }
+
+        // Collect metadata attributes
+        if (product.metadata) {
+          const rimStyle = product.metadata["rim style"] || product.metadata.rim_style
+          if (rimStyle) {
+            rimStyles.add(String(rimStyle))
+          }
+
+          const gender = product.metadata.gender
+          if (gender) {
+            genders.add(String(gender))
+          }
+
+          const shape = product.metadata.shapes
+          if (shape) {
+            shapes.add(String(shape))
+          }
+
+          const size = product.metadata.size
+          if (size) {
+            sizes.add(String(size))
+          }
+        }
+      })
+
+      filterOptions = {
+        brands: Array.from(allBrands.values()).sort((a, b) => a.name.localeCompare(b.name)),
+        categories: Array.from(allCategories.values()).sort((a, b) => a.name.localeCompare(b.name)),
+        rim_styles: Array.from(rimStyles).sort(),
+        genders: Array.from(genders).sort(),
+        shapes: Array.from(shapes).sort(),
+        sizes: Array.from(sizes).sort(),
+      }
+    }
+
+    const response: any = {
       products: formattedProducts,
       count: finalCount,
       limit: parsedQuery.limit,
       offset: parsedQuery.offset,
       has_more: parsedQuery.offset + parsedQuery.limit < finalCount,
-    })
+    }
+
+    if (filterOptions) {
+      response.filter_options = filterOptions
+    }
+
+    return res.json(response)
   } catch (error) {
     console.error("Error filtering products:", error)
 
