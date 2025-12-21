@@ -24,13 +24,77 @@ const ProductImportExportPage = () => {
   // Import mutation
   const importMutation = useMutation({
     mutationFn: async (csv: string) => {
-      return sdk.client.fetch("/admin/products/import", {
-        method: "POST",
-        body: {
-          csv,
-          filename: "products-import.csv",
-        },
-      });
+      try {
+        // Use fetch directly to have better control over error handling
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "/";
+        const response = await fetch(`${baseUrl}/admin/products/import`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            csv,
+            filename: "products-import.csv",
+          }),
+        });
+
+        const data = await response.json();
+
+        // Check if response indicates an error
+        if (!response.ok) {
+          const error = new Error(data.message || "Validation failed");
+          (error as any).errorData = data;
+          throw error;
+        }
+
+        return data;
+      } catch (error: any) {
+        // Log the raw error for debugging
+        console.error("Raw import error:", error);
+
+        // If it's already our custom error, re-throw it
+        if (error.errorData) {
+          throw error;
+        }
+
+        // Extract error data from various possible error structures
+        let errorData: any = null;
+
+        // Try different error structures
+        if (error.body) {
+          errorData =
+            typeof error.body === "string"
+              ? JSON.parse(error.body)
+              : error.body;
+        } else if (error.response?.body) {
+          errorData =
+            typeof error.response.body === "string"
+              ? JSON.parse(error.response.body)
+              : error.response.body;
+        } else if (error.response) {
+          errorData =
+            typeof error.response === "string"
+              ? JSON.parse(error.response)
+              : error.response;
+        } else if (error.data) {
+          errorData =
+            typeof error.data === "string"
+              ? JSON.parse(error.data)
+              : error.data;
+        } else if (typeof error === "object" && "message" in error) {
+          errorData = error;
+        }
+
+        console.log("Extracted error data:", errorData);
+
+        // Create a custom error with the error data attached
+        const customError = new Error(
+          errorData?.message || error.message || "Validation failed"
+        );
+        (customError as any).errorData = errorData || error;
+        throw customError;
+      }
     },
     onSuccess: (data: any) => {
       toast.success("Products imported successfully!", {
@@ -44,8 +108,94 @@ const ProductImportExportPage = () => {
       }
     },
     onError: (error: any) => {
-      toast.error("Failed to import products", {
-        description: error.message || "An error occurred during import",
+      // Log the full error for debugging
+      console.error("Import error:", error);
+
+      let errorMessage = "Failed to import products";
+      let errorDescription = "An error occurred during import";
+
+      // Try multiple ways to extract error data
+      let errorData: any = null;
+
+      // Method 1: Check if errorData is attached
+      if (error.errorData) {
+        errorData = error.errorData;
+      }
+      // Method 2: Check error.body
+      else if (error.body) {
+        errorData =
+          typeof error.body === "string" ? JSON.parse(error.body) : error.body;
+      }
+      // Method 3: Check error.response
+      else if (error.response) {
+        errorData = error.response.body || error.response;
+      }
+      // Method 4: Check if error itself has the data
+      else if (error.missingCategories || error.missingBrands || error.errors) {
+        errorData = error;
+      }
+      // Method 5: Try to parse error.message as JSON
+      else if (error.message) {
+        try {
+          errorData = JSON.parse(error.message);
+        } catch {
+          // If not JSON, use the message as is
+          errorDescription = error.message;
+        }
+      }
+
+      // Process error data if we found it
+      if (errorData) {
+        errorMessage = errorData.message || "Validation failed";
+
+        // Build detailed error description
+        const errorParts: string[] = [];
+
+        // Check for errors array first
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorParts.push(...errorData.errors);
+        }
+
+        // Check for missing categories
+        if (
+          errorData.missingCategories &&
+          Array.isArray(errorData.missingCategories) &&
+          errorData.missingCategories.length > 0
+        ) {
+          errorParts.push(
+            `❌ Missing categories: ${errorData.missingCategories.join(", ")}`
+          );
+        }
+
+        // Check for missing brands
+        if (
+          errorData.missingBrands &&
+          Array.isArray(errorData.missingBrands) &&
+          errorData.missingBrands.length > 0
+        ) {
+          errorParts.push(
+            `❌ Missing brands: ${errorData.missingBrands.join(", ")}`
+          );
+        }
+
+        if (errorParts.length > 0) {
+          errorDescription = errorParts.join("\n");
+        } else if (errorData.message) {
+          errorDescription = errorData.message;
+        }
+      }
+
+      // If we still don't have a good description, use the error message
+      if (
+        errorDescription === "An error occurred during import" &&
+        error.message
+      ) {
+        errorDescription = error.message;
+      }
+
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 15000, // Show for 15 seconds to allow reading
       });
     },
     onSettled: () => {
@@ -211,7 +361,7 @@ const ProductImportExportPage = () => {
         height: "50",
         sale_price: "129.99",
         regular_price: "149.99",
-        categories: "Sunglasses/Aviator",
+        categories: "Sunglasses",
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -263,7 +413,7 @@ const ProductImportExportPage = () => {
         height: "50",
         sale_price: "129.99",
         regular_price: "149.99",
-        categories: "Sunglasses/Aviator",
+        categories: "Sunglasses",
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -315,7 +465,7 @@ const ProductImportExportPage = () => {
         height: "52",
         sale_price: "129.99",
         regular_price: "149.99",
-        categories: "Sunglasses/Aviator",
+        categories: "Sunglasses",
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -366,7 +516,7 @@ const ProductImportExportPage = () => {
         height: "48",
         sale_price: "179.99",
         regular_price: "199.99",
-        categories: "Sunglasses/Sport",
+        categories: "Sunglasses",
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -417,7 +567,7 @@ const ProductImportExportPage = () => {
         height: "48",
         sale_price: "179.99",
         regular_price: "199.99",
-        categories: "Sunglasses/Sport",
+        categories: "Sunglasses",
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -468,7 +618,7 @@ const ProductImportExportPage = () => {
         height: "50",
         sale_price: "179.99",
         regular_price: "199.99",
-        categories: "Sunglasses/Sport",
+        categories: "Sunglasses",
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -520,7 +670,7 @@ const ProductImportExportPage = () => {
         height: "50",
         sale_price: "450.00",
         regular_price: "500.00",
-        categories: "Sunglasses/Designer",
+        categories: "Sunglasses",
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -572,7 +722,7 @@ const ProductImportExportPage = () => {
         height: "52",
         sale_price: "450.00",
         regular_price: "500.00",
-        categories: "Sunglasses/Designer",
+        categories: "Sunglasses",
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
@@ -624,7 +774,7 @@ const ProductImportExportPage = () => {
         height: "54",
         sale_price: "450.00",
         regular_price: "500.00",
-        categories: "Sunglasses/Designer",
+        categories: "Sunglasses",
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",

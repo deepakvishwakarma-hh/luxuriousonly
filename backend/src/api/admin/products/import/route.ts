@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { batchProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { BRAND_MODULE } from "../../../../modules/brand"
 
 type ImportRequestBody = {
   csv?: string
@@ -273,6 +274,7 @@ async function processProductRow(
   rowIndex: number,
   rowData: any,
   categoryNameToIdMap: Map<string, string>,
+  brandNameToIdMap: Map<string, string>,
   allSalesChannels: any[],
   allStockLocations: any[],
   defaultSalesChannelId: string,
@@ -282,6 +284,7 @@ async function processProductRow(
   skuIndex: number,
   imagesIndex: number,
   categoriesIndex: number,
+  brandIndex: number,
   salesChannelIdIndex: number,
   locationIdIndex: number,
   stockIndex: number,
@@ -290,7 +293,7 @@ async function processProductRow(
   publishedIndex: number,
   sizeIndex: number,
   variantRows: any[] = []
-): Promise<{ productData: any; locationStock: { locationId: string; stock: number; sku?: string } } | null> {
+): Promise<{ productData: any; locationStock: { locationId: string; stock: number; sku?: string }; brandId?: string } | null> {
   const { sku, name } = rowData
 
   // Extract metadata
@@ -488,6 +491,18 @@ async function processProductRow(
     }
   }
 
+  // Get brand ID from CSV
+  let brandId: string | undefined = undefined
+  if (brandIndex !== -1) {
+    const brandValue = row[brandIndex]?.trim()
+    if (brandValue) {
+      const foundBrandId = brandNameToIdMap.get(brandValue.toLowerCase().trim())
+      if (foundBrandId) {
+        brandId = foundBrandId
+      }
+    }
+  }
+
   // Build product data
   const productData: any = {
     title: name,
@@ -512,6 +527,7 @@ async function processProductRow(
   return {
     productData,
     locationStock: { locationId, stock, sku },
+    brandId,
   }
 }
 
@@ -612,6 +628,92 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
+    // Query all brands for name-based lookup
+    const brandIndex = normalizedHeaders.findIndex((h) => h === "brand")
+    const { data: allBrands } = await query.graph({
+      entity: "brand",
+      fields: ["id", "name"],
+    })
+    const brandNameToIdMap = new Map<string, string>()
+    if (allBrands && allBrands.length > 0) {
+      for (const brand of allBrands) {
+        if (brand.name) {
+          brandNameToIdMap.set(brand.name.toLowerCase().trim(), brand.id)
+        }
+      }
+    }
+
+    // Validation: Collect all unique categories and brands from CSV before processing
+    const categoriesInCsv = new Map<string, string>() // lowercase -> original case
+    const brandsInCsv = new Map<string, string>() // lowercase -> original case
+
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex]
+      if (row.length < headers.length) {
+        while (row.length < headers.length) {
+          row.push("")
+        }
+      }
+
+      // Collect categories
+      if (categoriesIndex !== -1) {
+        const categoriesValue = row[categoriesIndex]?.trim()
+        if (categoriesValue) {
+          const categoryNames = categoriesValue.split(",").map((name) => name.trim()).filter(Boolean)
+          for (const categoryName of categoryNames) {
+            const normalized = categoryName.toLowerCase().trim()
+            if (!categoriesInCsv.has(normalized)) {
+              categoriesInCsv.set(normalized, categoryName)
+            }
+          }
+        }
+      }
+
+      // Collect brands
+      if (brandIndex !== -1) {
+        const brandValue = row[brandIndex]?.trim()
+        if (brandValue) {
+          const normalized = brandValue.toLowerCase().trim()
+          if (!brandsInCsv.has(normalized)) {
+            brandsInCsv.set(normalized, brandValue)
+          }
+        }
+      }
+    }
+
+    // Validate categories exist
+    const missingCategories: string[] = []
+    for (const [normalizedCategory, originalCategory] of categoriesInCsv.entries()) {
+      if (!categoryNameToIdMap.has(normalizedCategory)) {
+        missingCategories.push(originalCategory)
+      }
+    }
+
+    // Validate brands exist
+    const missingBrands: string[] = []
+    for (const [normalizedBrand, originalBrand] of brandsInCsv.entries()) {
+      if (!brandNameToIdMap.has(normalizedBrand)) {
+        missingBrands.push(originalBrand)
+      }
+    }
+
+    // Return error if any categories or brands are missing
+    if (missingCategories.length > 0 || missingBrands.length > 0) {
+      const errors: string[] = []
+      if (missingCategories.length > 0) {
+        errors.push(`The following categories are not available in the database: ${missingCategories.join(", ")}`)
+      }
+      if (missingBrands.length > 0) {
+        errors.push(`The following brands are not available in the database: ${missingBrands.join(", ")}`)
+      }
+      return res.status(400).json({
+        message: "Validation failed",
+        errors,
+        missingCategories: missingCategories.length > 0 ? missingCategories : undefined,
+        missingBrands: missingBrands.length > 0 ? missingBrands : undefined,
+      })
+    }
+
     // Process rows and group by product name (same name = same product, different sizes = variants)
     const BATCH_SIZE = 200
     const productsToCreate: any[] = []
@@ -670,6 +772,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         mainRowIndex,
         mainRowData,
         categoryNameToIdMap,
+        brandNameToIdMap,
         allSalesChannels,
         allStockLocations,
         defaultSalesChannelId,
@@ -679,6 +782,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         skuIndex,
         imagesIndex,
         categoriesIndex,
+        brandIndex,
         salesChannelIdIndex,
         locationIdIndex,
         stockIndex,
@@ -690,7 +794,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       )
 
       if (mainProductProcessed) {
-        const { productData, locationStock } = mainProductProcessed
+        const { productData, locationStock, brandId } = mainProductProcessed
 
         // Store location/stock for all variants (main + grouped variants)
         productLocationStockMap.push(locationStock) // Main product
@@ -730,20 +834,25 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }
         }
 
-        productsToCreate.push(productData)
+        productsToCreate.push({ productData, brandId })
       }
     }
 
     // Process creates in batches
     let totalCreated = 0
+    const link = req.scope.resolve(ContainerRegistrationKeys.LINK)
 
     for (let i = 0; i < productsToCreate.length; i += BATCH_SIZE) {
       const batch = productsToCreate.slice(i, i + BATCH_SIZE)
       const batchLocationStock = productLocationStockMap.slice(i, i + BATCH_SIZE)
 
+      // Extract product data and brand IDs separately
+      const batchProductData = batch.map((item) => item.productData)
+      const batchBrandIds = batch.map((item) => item.brandId)
+
       const { result } = await batchProductsWorkflow(req.scope).run({
         input: {
-          create: batch,
+          create: batchProductData,
           update: [],
         },
       })
@@ -751,6 +860,36 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       console.log("Batch create result:", JSON.stringify(result, null, 2))
 
       totalCreated += result.created?.length || 0
+
+      // Link brands to products
+      if (result.created && result.created.length > 0) {
+        const brandLinks: any[] = []
+        for (let j = 0; j < result.created.length; j++) {
+          const createdProduct = result.created[j]
+          const brandId = batch[j]?.brandId
+
+          if (createdProduct.id && brandId) {
+            brandLinks.push({
+              [Modules.PRODUCT]: {
+                product_id: createdProduct.id,
+              },
+              [BRAND_MODULE]: {
+                brand_id: brandId,
+              },
+            })
+          }
+        }
+
+        if (brandLinks.length > 0) {
+          try {
+            await link.create(brandLinks)
+            console.log(`Linked ${brandLinks.length} brand(s) to products`)
+          } catch (brandLinkError) {
+            console.error("Error linking brands to products:", brandLinkError)
+            // Continue even if brand linking fails
+          }
+        }
+      }
 
       // Create inventory levels for created products
       if (result.created && result.created.length > 0) {
