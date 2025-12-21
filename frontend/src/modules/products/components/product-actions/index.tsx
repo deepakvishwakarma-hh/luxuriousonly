@@ -50,13 +50,35 @@ export default function ProductActions({
   const [isTogglingLiked, setIsTogglingLiked] = useState(false)
   const countryCode = useParams().countryCode as string
 
-  // If there is only 1 variant, preselect the options
+  // Reset initialization flag when product changes
   useEffect(() => {
-    if (product.variants?.length === 1) {
-      const variantOptions = optionsAsKeymap(product.variants[0].options)
+    hasInitializedVariant.current = false
+  }, [product.id])
+
+  // Automatically select the first variant optimistically
+  useEffect(() => {
+    if (product.variants && product.variants.length > 0 && !hasInitializedVariant.current) {
+      // Check if there's a variant ID in URL params
+      const variantIdFromUrl = searchParams.get("v_id")
+      
+      // If URL has a variant ID, find and select that variant
+      if (variantIdFromUrl) {
+        const variantFromUrl = product.variants.find(v => v.id === variantIdFromUrl)
+        if (variantFromUrl) {
+          const variantOptions = optionsAsKeymap(variantFromUrl.options)
+          setOptions(variantOptions ?? {})
+          hasInitializedVariant.current = true
+          return
+        }
+      }
+      
+      // Auto-select the first variant optimistically
+      const firstVariant = product.variants[0]
+      const variantOptions = optionsAsKeymap(firstVariant.options)
       setOptions(variantOptions ?? {})
+      hasInitializedVariant.current = true
     }
-  }, [product.variants])
+  }, [product.variants, product.id, searchParams])
 
   // Check if product is liked
   useEffect(() => {
@@ -156,6 +178,7 @@ export default function ProductActions({
   }, [selectedVariant])
 
   const actionsRef = useRef<HTMLDivElement>(null)
+  const hasInitializedVariant = useRef(false)
 
   const inView = useIntersection(actionsRef, "0px")
 

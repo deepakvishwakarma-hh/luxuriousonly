@@ -38,6 +38,8 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
     return product.variants.some((variant) => isVariantInStock(variant))
   })()
 
+  const productBrandName = product.title.split(" ")[0] || "n/a"
+
   return (
     <div id="product-info">
       <div className="flex flex-col gap-y-3">
@@ -50,7 +52,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           </LocalizedClientLink>
         )}
         <p className="text-sm font-medium text-ui-fg-muted uppercase tracking-wide">
-          <b>Brand: </b>Gucci
+          <b>Brand: </b> {productBrandName}
         </p>
         <Heading
           level="h2"

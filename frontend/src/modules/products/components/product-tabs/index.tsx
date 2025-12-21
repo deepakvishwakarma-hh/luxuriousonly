@@ -39,37 +39,43 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
 }
 
 const ProductInfoTab = ({ product }: ProductTabsProps) => {
+  // Helper function to format metadata keys (snake_case to Title Case)
+  const formatKey = (key: string): string => {
+    return key
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ")
+  }
+
+  // Helper function to format metadata values
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined) return "-"
+    if (typeof value === "boolean") return value ? "Yes" : "No"
+    if (Array.isArray(value)) return value.join(", ")
+    if (typeof value === "object") return JSON.stringify(value, null, 2)
+    return String(value)
+  }
+
+  // Get all metadata entries
+  const metadataEntries = product.metadata
+    ? Object.entries(product.metadata).map(([key, value]) => ({
+        key: formatKey(key),
+        value: formatValue(value),
+      }))
+    : []
+
+  // Combine standard fields and metadata
+  const allFields = [...metadataEntries]
+
   return (
     <div className="text-small-regular py-8">
-      <div className="grid grid-cols-2 gap-x-8">
-        <div className="flex flex-col gap-y-4">
-          <div>
-            <span className="font-semibold">Material</span>
-            <p>{product.material ? product.material : "-"}</p>
+      <div className="flex flex-col gap-y-3">
+        {allFields.map((field, index) => (
+          <div key={index} className="flex flex-row gap-4">
+            <span className="font-semibold min-w-[180px]">{field.key}</span>
+            <span className="text-ui-fg-base">{field.value}</span>
           </div>
-          <div>
-            <span className="font-semibold">Country of origin</span>
-            <p>{product.origin_country ? product.origin_country : "-"}</p>
-          </div>
-          <div>
-            <span className="font-semibold">Type</span>
-            <p>{product.type ? product.type.value : "-"}</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-y-4">
-          <div>
-            <span className="font-semibold">Weight</span>
-            <p>{product.weight ? `${product.weight} g` : "-"}</p>
-          </div>
-          <div>
-            <span className="font-semibold">Dimensions</span>
-            <p>
-              {product.length && product.width && product.height
-                ? `${product.length}L x ${product.width}W x ${product.height}H`
-                : "-"}
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )
