@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { batchProductsWorkflow, createInventoryLevelsWorkflow, batchVariantImagesWorkflow } from "@medusajs/medusa/core-flows"
+import { batchProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 type ImportRequestBody = {
@@ -144,46 +144,6 @@ const REQUIRED_FIELDS = [
   "published",
 ]
 
-// Extract brand and model from name field
-// Format: <brand name> <model name> <other stuff>
-function extractBrandAndModel(name: string): { brand: string; model: string } {
-  if (!name || typeof name !== "string") {
-    return { brand: "", model: "" }
-  }
-
-  const parts = name.trim().split(/\s+/)
-  if (parts.length < 2) {
-    return { brand: parts[0] || "", model: "" }
-  }
-
-  // First word is brand, second word is model
-  return {
-    brand: parts[0] || "",
-    model: parts[1] || "",
-  }
-}
-
-// Group products by brand + model
-function groupProductsByBrandAndModel(
-  products: Array<{ brand: string; model: string; rowIndex: number; data: any }>
-): Map<string, Array<{ rowIndex: number; data: any }>> {
-  const groups = new Map<string, Array<{ rowIndex: number; data: any }>>()
-
-  for (const product of products) {
-    const groupKey = `${product.brand.toLowerCase().trim()}_${product.model.toLowerCase().trim()}`
-
-    if (!groups.has(groupKey)) {
-      groups.set(groupKey, [])
-    }
-
-    groups.get(groupKey)!.push({
-      rowIndex: product.rowIndex,
-      data: product.data,
-    })
-  }
-
-  return groups
-}
 
 // Parse CSV string into rows
 function parseCSV(csvContent: string): { headers: string[]; rows: string[][] } {
@@ -282,14 +242,36 @@ function extractMetadata(headers: string[], row: string[]): Record<string, any> 
   return metadata
 }
 
+// Group products by name (same name = same product, different sizes = variants)
+function groupProductsByName(
+  products: Array<{ name: string; rowIndex: number; data: any }>
+): Map<string, Array<{ rowIndex: number; data: any }>> {
+  const groups = new Map<string, Array<{ rowIndex: number; data: any }>>()
+
+  for (const product of products) {
+    const groupKey = product.name.toLowerCase().trim()
+
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, [])
+    }
+
+    groups.get(groupKey)!.push({
+      rowIndex: product.rowIndex,
+      data: product.data,
+    })
+  }
+
+  return groups
+}
+
 // Process a single product row and return product data
+// Can create variants for products with same name but different sizes
 async function processProductRow(
   row: string[],
   headers: string[],
   normalizedHeaders: string[],
   rowIndex: number,
   rowData: any,
-  existingProductsMap: Map<string, { productId: string; variantId: string }>,
   categoryNameToIdMap: Map<string, string>,
   allSalesChannels: any[],
   allStockLocations: any[],
@@ -306,7 +288,7 @@ async function processProductRow(
   salePriceIndex: number,
   regularPriceIndex: number,
   publishedIndex: number,
-  isMainProduct: boolean,
+  sizeIndex: number,
   variantRows: any[] = []
 ): Promise<{ productData: any; locationStock: { locationId: string; stock: number; sku?: string } } | null> {
   const { sku, name } = rowData
@@ -389,20 +371,20 @@ async function processProductRow(
     }
   }
 
-  // Tags are now handled by extractMetadata and stored in metadata instead of tag relations
-  // No need to parse tags separately
+  // Get size from CSV
+  const size = sizeIndex !== -1 ? row[sizeIndex]?.trim() : "Default"
 
   // Get prices (convert to cents)
   const salePrice = salePriceIndex !== -1 ? parseFloat(row[salePriceIndex]?.trim() || "0") : 0
   const regularPrice = regularPriceIndex !== -1 ? parseFloat(row[regularPriceIndex]?.trim() || "0") : salePrice || 0
   const priceAmount = salePrice > 0 ? Math.round(salePrice * 100) : Math.round(regularPrice * 100)
 
-  // Build variant data for main product
+  // Build main variant for the product
   const mainVariant: any = {
-    title: name,
+    title: `${name} - ${size}`,
     sku: sku || undefined,
     options: {
-      Default: "Default",
+      Size: size || "Default",
     },
     prices: [
       {
@@ -414,32 +396,29 @@ async function processProductRow(
     length: row[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
     width: row[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
     height: row[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
-    // Store main variant images separately for later association
-    _variantImages: images.length > 0 ? images : undefined,
     metadata: { ...metadata },
   }
 
   // Build variants array
   const variants: any[] = [mainVariant]
 
-  // Add variants from other rows in the group
+  // Add variants from other rows with same name but different sizes
   for (const variantRowData of variantRows) {
     const variantRow = variantRowData.row
-    const variantName = variantRow[productNameIndex]?.trim()
     const variantSku = skuIndex !== -1 ? variantRow[skuIndex]?.trim() : undefined
+    const variantSize = sizeIndex !== -1 ? variantRow[sizeIndex]?.trim() : "Default"
     const variantSalePrice = salePriceIndex !== -1 ? parseFloat(variantRow[salePriceIndex]?.trim() || "0") : 0
     const variantRegularPrice = regularPriceIndex !== -1 ? parseFloat(variantRow[regularPriceIndex]?.trim() || "0") : variantSalePrice || 0
     const variantPriceAmount = variantSalePrice > 0 ? Math.round(variantSalePrice * 100) : Math.round(variantRegularPrice * 100)
 
     const variantMetadata = extractMetadata(headers, variantRow)
 
-    // Parse variant images from CSV (can be pipe-separated URLs or JSON array)
+    // Parse variant images from CSV
     let variantImages: Array<{ url: string }> = []
     if (imagesIndex !== -1) {
       const variantImagesValue = variantRow[imagesIndex]?.trim()
       if (variantImagesValue) {
         try {
-          // Try to parse as JSON first
           const parsed = JSON.parse(variantImagesValue)
           if (Array.isArray(parsed)) {
             variantImages = parsed.map((img: any) => {
@@ -452,7 +431,6 @@ async function processProductRow(
             variantImages = [{ url: parsed }]
           }
         } catch {
-          // If not JSON, treat as pipe-separated URLs (or comma-separated)
           const separator = variantImagesValue.includes("|") ? "|" : ","
           const urls = variantImagesValue.split(separator).map((url) => url.trim()).filter(Boolean)
           variantImages = urls.map((url) => ({ url }))
@@ -460,11 +438,21 @@ async function processProductRow(
       }
     }
 
+    // Add variant images to product images if they're not already there
+    if (variantImages.length > 0) {
+      for (const variantImage of variantImages) {
+        const imageUrl = variantImage.url
+        if (!images.some((img) => img.url === imageUrl)) {
+          images.push(variantImage)
+        }
+      }
+    }
+
     const variant: any = {
-      title: variantName,
+      title: `${name} - ${variantSize}`,
       sku: variantSku || undefined,
       options: {
-        Default: "Default",
+        Size: variantSize || "Default",
       },
       prices: [
         {
@@ -476,24 +464,10 @@ async function processProductRow(
       length: variantRow[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
       width: variantRow[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
       height: variantRow[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
-      // Don't add images directly to variants - they will be associated after product creation
-      // Store variant images separately for later association
-      _variantImages: variantImages.length > 0 ? variantImages : undefined,
       metadata: { ...variantMetadata },
     }
 
     variants.push(variant)
-
-    // Add variant images to product images if they're not already there
-    if (variantImages.length > 0) {
-      for (const variantImage of variantImages) {
-        const imageUrl = variantImage.url
-        // Check if this image URL is already in the product images
-        if (!images.some((img) => img.url === imageUrl)) {
-          images.push(variantImage)
-        }
-      }
-    }
   }
 
   // Determine product status based on published field (0 = draft, 1 = published)
@@ -514,18 +488,6 @@ async function processProductRow(
     }
   }
 
-  // Ensure fallback image is included in product images if no images exist
-  if (images.length === 0) {
-    images.push({ url: FALLBACK_VARIANT_IMAGE_URL })
-  } else {
-    // Check if fallback image is already in the images array
-    const hasFallback = images.some((img) => img.url === FALLBACK_VARIANT_IMAGE_URL)
-    if (!hasFallback) {
-      // Add fallback image to product images
-      images.push({ url: FALLBACK_VARIANT_IMAGE_URL })
-    }
-  }
-
   // Build product data
   const productData: any = {
     title: name,
@@ -536,24 +498,15 @@ async function processProductRow(
     thumbnail: row[normalizedHeaders.findIndex((h) => h === "thumbnail")] || "",
     images: images.length > 0 ? images : undefined,
     category_ids: categoryIds.length > 0 ? categoryIds : undefined,
-    // Tags are stored in metadata, not as tag relations
     metadata,
     sales_channels: salesChannelId ? [{ id: salesChannelId }] : [],
     options: [
       {
-        title: "Default",
-        values: ["Default"],
+        title: "Size",
+        values: variants.map((v) => v.options.Size || "Default"),
       },
     ],
     variants,
-  }
-
-  // Clean up _variantImages from variants before sending to batchProductsWorkflow
-  // (they're stored separately for later association)
-  if (productData.variants) {
-    for (const variant of productData.variants) {
-      delete variant._variantImages
-    }
   }
 
   return {
@@ -562,102 +515,6 @@ async function processProductRow(
   }
 }
 
-// Fallback image URL to use when no variant images are found
-const FALLBACK_VARIANT_IMAGE_URL = "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg"
-
-// Helper function to associate variant images after batch operations
-// Uses Medusa's batch variant images endpoint: POST /admin/products/:id/variants/:variant_id/images/batch
-async function associateVariantImages(
-  scope: any,
-  query: any,
-  createdProducts: any[],
-  batchVariantsImages: Array<Array<{ sku?: string; images: Array<{ url: string }> }>>
-): Promise<void> {
-  for (let i = 0; i < createdProducts.length; i++) {
-    const product = createdProducts[i]
-    const variantsImages = batchVariantsImages[i] || []
-
-    if (!product.id) continue
-
-    // Query the product with variants and images
-    const { data: products } = await query.graph({
-      entity: "product",
-      fields: [
-        "id",
-        "variants.id",
-        "variants.sku",
-        "images.id",
-        "images.url",
-      ],
-      filters: {
-        id: product.id,
-      },
-    })
-
-    if (!products || products.length === 0) continue
-
-    const productData = products[0]
-    if (!productData.variants || !productData.images) continue
-
-    // Create a map of image URLs to image IDs
-    const imageUrlToIdMap = new Map<string, string>()
-    for (const image of productData.images) {
-      if (image.url) {
-        imageUrlToIdMap.set(image.url, image.id)
-      }
-    }
-
-    // Get fallback image ID if it exists in the product
-    const fallbackImageId = imageUrlToIdMap.get(FALLBACK_VARIANT_IMAGE_URL)
-
-    // Process all variants, even if they don't have images in batchVariantsImages
-    for (const variant of productData.variants) {
-      let imageIds: string[] = []
-
-      // Try to find variant images from batchVariantsImages
-      if (variantsImages.length > 0) {
-        const variantImageData = variantsImages.find((vi) => vi.sku === variant.sku)
-        if (variantImageData && variantImageData.images && variantImageData.images.length > 0) {
-          // Collect image IDs for this variant
-          for (const imageData of variantImageData.images) {
-            const imageId = imageUrlToIdMap.get(imageData.url)
-            if (imageId) {
-              imageIds.push(imageId)
-            }
-          }
-        }
-      }
-
-      // If no images found and fallback image exists, use fallback
-      if (imageIds.length === 0 && fallbackImageId) {
-        console.log(`No images found for variant ${variant.id} (SKU: ${variant.sku}), using fallback image`)
-        imageIds = [fallbackImageId]
-      }
-
-      // Skip if still no images
-      if (imageIds.length === 0) {
-        console.log(`No images found for variant ${variant.id} (SKU: ${variant.sku}) and fallback image not available`)
-        continue
-      }
-
-      // Use batchVariantImagesWorkflow to associate variant images
-      try {
-        const { result } = await batchVariantImagesWorkflow(scope).run({
-          input: {
-            variant_id: variant.id,
-            add: imageIds,
-            remove: [],
-          },
-        })
-
-        console.log(`Associated ${result.added.length} images with variant ${variant.id} (SKU: ${variant.sku})`)
-      } catch (workflowError) {
-        console.error(`Error associating variant images for variant ${variant.id}:`, workflowError)
-        // Continue with next variant
-      }
-    }
-  }
-}
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
@@ -702,8 +559,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const handleIndex = normalizedHeaders.findIndex((h) => h === "handle")
     const skuIndex = normalizedHeaders.findIndex((h) => h === "sku")
-    const brandIndex = normalizedHeaders.findIndex((h) => h === "brand")
-    const modelIndex = normalizedHeaders.findIndex((h) => h === "model")
     const imagesIndex = normalizedHeaders.findIndex((h) => h === "images" || h === "image")
     const categoriesIndex = normalizedHeaders.findIndex((h) => h === "categories" || h === "category")
     const salesChannelIdIndex = normalizedHeaders.findIndex((h) => h === "sales_channel_id" || h === "sales channel id")
@@ -712,6 +567,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const salePriceIndex = normalizedHeaders.findIndex((h) => h === "sale_price")
     const regularPriceIndex = normalizedHeaders.findIndex((h) => h === "regular_price")
     const publishedIndex = normalizedHeaders.findIndex((h) => h === "published")
+    const sizeIndex = normalizedHeaders.findIndex((h) => h === "size")
 
     if (productNameIndex === -1) {
       return res.status(400).json({
@@ -756,19 +612,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
-    // Process rows and group by brand + model
+    // Process rows and group by product name (same name = same product, different sizes = variants)
     const BATCH_SIZE = 200
     const productsToCreate: any[] = []
-    const productsToUpdate: any[] = []
     const productLocationStockMap: Array<{ locationId: string; stock: number; sku?: string }> = []
     const skuToLocationStockMap = new Map<string, { locationId: string; stock: number }>()
-    // Map product title/SKU to variant images (extracted before cleanup)
-    const productVariantImagesMap = new Map<string, Array<{ sku?: string; images: Array<{ url: string }> }>>()
 
-    // First pass: collect all SKUs, extract brand/model, and prepare for grouping
-    const skusToCheck: string[] = []
-    const rowDataMap: Map<number, any> = new Map()
-    const productsForGrouping: Array<{ brand: string; model: string; rowIndex: number; data: any }> = []
+    // First pass: collect all products for grouping
+    const productsForGrouping: Array<{ name: string; rowIndex: number; data: any }> = []
 
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex]
@@ -782,82 +633,42 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const name = row[productNameIndex]?.trim()
       if (!name) continue // Skip empty rows
 
-      // Get brand and model from CSV or extract from name
-      let brand = brandIndex !== -1 ? row[brandIndex]?.trim() : ""
-      let model = modelIndex !== -1 ? row[modelIndex]?.trim() : ""
-
-      // If brand or model is missing, try to extract from name
-      if (!brand || !model) {
-        const extracted = extractBrandAndModel(name)
-        if (!brand) brand = extracted.brand
-        if (!model) model = extracted.model
-      }
-
       // Get SKU if available
       const sku = skuIndex !== -1 ? row[skuIndex]?.trim() : undefined
-      if (sku) {
-        skusToCheck.push(sku)
-      }
 
-      // Store row data for later processing
-      const rowData = { row, sku, name, brand, model }
-      rowDataMap.set(rowIndex, rowData)
+      // Store row data for processing
+      const rowData = { row, sku, name }
 
       // Add to grouping array
       productsForGrouping.push({
-        brand: brand || "",
-        model: model || "",
+        name,
         rowIndex,
         data: rowData,
       })
     }
 
-    // Query existing products by SKU
-    const existingProductsMap = new Map<string, { productId: string; variantId: string }>()
-    if (skusToCheck.length > 0) {
-      const { data: existingVariants } = await query.graph({
-        entity: "product_variant",
-        fields: ["id", "sku", "product_id"],
-        filters: {
-          sku: skusToCheck,
-        },
-      })
+    // Group products by name
+    const productGroups = groupProductsByName(productsForGrouping)
 
-      if (existingVariants && existingVariants.length > 0) {
-        for (const variant of existingVariants) {
-          if (variant.sku) {
-            existingProductsMap.set(variant.sku, {
-              productId: variant.product_id || "",
-              variantId: variant.id,
-            })
-          }
-        }
-      }
-    }
-
-    // Group products by brand + model
-    const productGroups = groupProductsByBrandAndModel(productsForGrouping)
-
-    // Second pass: build create/update arrays (grouped by brand + model)
+    // Second pass: build create arrays (grouped by name, variants based on size)
     for (const [groupKey, groupProducts] of productGroups.entries()) {
       if (groupProducts.length === 0) continue
 
       // First product in group becomes the main product
       const mainProductData = groupProducts[0]
       const { rowIndex: mainRowIndex, data: mainRowData } = mainProductData
-      const { row: mainRow, sku: mainSku, name: mainName, brand: mainBrand, model: mainModel } = mainRowData
+      const { row: mainRow, sku: mainSku, name: mainName } = mainRowData
 
-      // Remaining products become variants
+      // Remaining products become variants (if they have different sizes)
       const variantProducts = groupProducts.slice(1)
 
-      // Process main product
+      // Process main product with variants
       const mainProductProcessed = await processProductRow(
         mainRow,
         headers,
         normalizedHeaders,
         mainRowIndex,
         mainRowData,
-        existingProductsMap,
         categoryNameToIdMap,
         allSalesChannels,
         allStockLocations,
@@ -874,32 +685,18 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         salePriceIndex,
         regularPriceIndex,
         publishedIndex,
-        true, // isMainProduct
+        sizeIndex,
         variantProducts.map((vp) => vp.data) // variant data
       )
 
       if (mainProductProcessed) {
         const { productData, locationStock } = mainProductProcessed
 
-        // Extract variant images BEFORE cleanup (store them for later association)
-        const variantImagesForProduct: Array<{ sku?: string; images: Array<{ url: string }> }> = []
-        if (productData.variants) {
-          for (const variant of productData.variants) {
-            if (variant._variantImages && variant._variantImages.length > 0) {
-              variantImagesForProduct.push({
-                sku: variant.sku,
-                images: variant._variantImages,
-              })
-            }
-          }
-        }
-        // Store variant images by product title for later retrieval
-        if (variantImagesForProduct.length > 0) {
-          productVariantImagesMap.set(productData.title, variantImagesForProduct)
-        }
-
         // Store location/stock for all variants (main + grouped variants)
         productLocationStockMap.push(locationStock) // Main product
+        if (mainSku) {
+          skuToLocationStockMap.set(mainSku, { locationId: locationStock.locationId, stock: locationStock.stock })
+        }
 
         // Add variant stocks
         for (const variantProduct of variantProducts) {
@@ -933,105 +730,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }
         }
 
-        // Store main product stock in map
-        if (mainSku) {
-          skuToLocationStockMap.set(mainSku, { locationId: locationStock.locationId, stock: locationStock.stock })
-        }
-
-        // Check if product exists by SKU
-        if (mainSku && existingProductsMap.has(mainSku)) {
-          const existing = existingProductsMap.get(mainSku)!
-          productsToUpdate.push({
-            id: existing.productId,
-            ...productData,
-            variants: [
-              {
-                id: existing.variantId,
-                ...productData.variants[0],
-              },
-              ...productData.variants.slice(1), // Add other variants
-            ],
-          })
-        } else {
-          productsToCreate.push(productData)
-        }
+        productsToCreate.push(productData)
       }
     }
 
     // Process creates in batches
     let totalCreated = 0
-    let totalUpdated = 0
 
-    // Track which products were created/updated for inventory level mapping
-    // Map product index to variants with their stock info
-    const productToVariantsStockMap = new Map<number, Array<{ sku?: string; locationId: string; stock: number }>>()
-    // Map product index to variants with their images info
-    const productToVariantsImagesMap = new Map<number, Array<{ sku?: string; images: Array<{ url: string }> }>>()
-    let createIndex = 0
-
-    // Rebuild mapping based on grouped products
-    for (const [groupKey, groupProducts] of productGroups.entries()) {
-      if (groupProducts.length === 0) continue
-
-      const mainProductData = groupProducts[0]
-      const { data: mainRowData } = mainProductData
-      const { sku: mainSku } = mainRowData
-
-      // Check if this product goes to create or update
-      if (!mainSku || !existingProductsMap.has(mainSku)) {
-        // This is a create - collect all variant stock info
-        const variantStocks: Array<{ sku?: string; locationId: string; stock: number }> = []
-        const variantImages: Array<{ sku?: string; images: Array<{ url: string }> }> = []
-
-        // Add main product stock and images
-        const mainLocationStock = skuToLocationStockMap.get(mainSku || "")
-        if (mainLocationStock) {
-          variantStocks.push({
-            sku: mainSku,
-            ...mainLocationStock,
-          })
-        }
-
-        // Get variant images from the stored map (extracted before cleanup)
-        const mainProductData = groupProducts[0]
-        const mainRowData = mainProductData.data
-        const storedVariantImages = productVariantImagesMap.get(mainRowData.name)
-
-        if (storedVariantImages && storedVariantImages.length > 0) {
-          // Add all variant images from stored map
-          variantImages.push(...storedVariantImages)
-        }
-
-        // Add variant stocks
-        for (let variantIdx = 1; variantIdx < groupProducts.length; variantIdx++) {
-          const variantProduct = groupProducts[variantIdx]
-          const { data: variantRowData } = variantProduct
-          const { sku: variantSku } = variantRowData
-          const variantLocationStock = skuToLocationStockMap.get(variantSku || "")
-          if (variantLocationStock) {
-            variantStocks.push({
-              sku: variantSku,
-              ...variantLocationStock,
-            })
-          }
-        }
-
-        productToVariantsStockMap.set(createIndex, variantStocks)
-        productToVariantsImagesMap.set(createIndex, variantImages)
-        createIndex++
-      }
-    }
-
-    // Process creates in batches
-    let createBatchStartIndex = 0
     for (let i = 0; i < productsToCreate.length; i += BATCH_SIZE) {
       const batch = productsToCreate.slice(i, i + BATCH_SIZE)
-      const batchVariantsStock: Array<Array<{ sku?: string; locationId: string; stock: number }>> = []
-      for (let j = 0; j < batch.length; j++) {
-        const variantsStock = productToVariantsStockMap.get(createBatchStartIndex + j) || []
-        batchVariantsStock.push(variantsStock)
-      }
-      createBatchStartIndex += batch.length
+      const batchLocationStock = productLocationStockMap.slice(i, i + BATCH_SIZE)
 
       const { result } = await batchProductsWorkflow(req.scope).run({
         input: {
@@ -1051,10 +759,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
         const inventoryLevels: any[] = []
         const seenCombinations = new Set<string>() // Track location_id + inventory_item_id to avoid duplicates
+        const inventoryModuleService = req.scope.resolve(Modules.INVENTORY)
 
         for (let j = 0; j < result.created.length; j++) {
           const createdProduct = result.created[j]
-          const variantsStock = batchVariantsStock[j] || []
+          const locationStock = batchLocationStock[j] || { locationId: defaultLocationId, stock: 0 }
 
           // Get product ID from result
           const productId = createdProduct.id
@@ -1077,10 +786,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           if (createdProducts && createdProducts.length > 0) {
             const product = createdProducts[0]
             if (product.variants && product.variants.length > 0) {
-              // Process all variants (main product + grouped variants)
+              // Process all variants (main product + size variants)
               for (const variant of product.variants) {
                 // Find matching stock info by SKU
-                const variantStockInfo = variantsStock.find((vs) => vs.sku === variant.sku) || variantsStock[0] || { locationId: defaultLocationId, stock: 0 }
+                const variantStockInfo = skuToLocationStockMap.get(variant.sku || "") || locationStock
                 const { locationId, stock } = variantStockInfo
 
                 // Get inventory item ID from variant link
@@ -1117,22 +826,36 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                   }
                 }
 
-                // Only add if we found an inventory item and this combination doesn't exist
+                // Only add if we found an inventory item
                 if (inventoryItemId) {
                   const combinationKey = `${locationId}:${inventoryItemId}`
 
                   // Check if inventory level already exists
                   const { data: existingLevels } = await query.graph({
                     entity: "inventory_level",
-                    fields: ["id"],
+                    fields: ["id", "stocked_quantity"],
                     filters: {
                       location_id: locationId,
                       inventory_item_id: inventoryItemId,
                     },
                   })
 
-                  // Only create if it doesn't exist and we haven't already queued it
-                  if (!existingLevels || existingLevels.length === 0) {
+                  if (existingLevels && existingLevels.length > 0) {
+                    // Update existing inventory level
+                    const existingLevel = existingLevels[0] as any
+                    if (existingLevel.stocked_quantity !== stock) {
+                      try {
+                        await inventoryModuleService.updateInventoryLevels({
+                          id: existingLevel.id,
+                          stocked_quantity: stock,
+                        })
+                        console.log(`Updated inventory level ${existingLevel.id} to stock ${stock}`)
+                      } catch (updateError) {
+                        console.error(`Error updating inventory level ${existingLevel.id}:`, updateError)
+                      }
+                    }
+                  } else {
+                    // Create new inventory level if it doesn't exist and we haven't already queued it
                     if (!seenCombinations.has(combinationKey)) {
                       seenCombinations.add(combinationKey)
                       inventoryLevels.push({
@@ -1161,183 +884,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             // Continue even if inventory level creation fails
           }
         }
-
-        // Associate variant images if any
-        const batchVariantsImages: Array<Array<{ sku?: string; images: Array<{ url: string }> }>> = []
-        for (let j = 0; j < result.created.length; j++) {
-          const batchIndex = createBatchStartIndex - batch.length + j
-          const variantsImages = productToVariantsImagesMap.get(batchIndex) || []
-          batchVariantsImages.push(variantsImages)
-        }
-
-        if (batchVariantsImages.length > 0) {
-          try {
-            await associateVariantImages(req.scope, query, result.created, batchVariantsImages)
-          } catch (imageError) {
-            console.error("Error associating variant images:", imageError)
-            // Continue even if variant image association fails
-          }
-        }
-      }
-    }
-
-    // Process updates in batches
-    // Map update products to their location/stock by SKU
-    const updateSkuMap = new Map<string, { locationId: string; stock: number }>()
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      const rowData = rowDataMap.get(rowIndex)
-      if (!rowData) continue
-
-      const { sku } = rowData
-      if (sku && existingProductsMap.has(sku)) {
-        const { locationId, stock } = productLocationStockMap[rowIndex]
-        updateSkuMap.set(sku, { locationId, stock })
-      }
-    }
-
-    for (let i = 0; i < productsToUpdate.length; i += BATCH_SIZE) {
-      const batch = productsToUpdate.slice(i, i + BATCH_SIZE)
-
-      const { result } = await batchProductsWorkflow(req.scope).run({
-        input: {
-          create: [],
-          update: batch,
-        },
-      })
-
-      console.log("Batch update result:", JSON.stringify(result, null, 2))
-
-      totalUpdated += result.updated?.length || 0
-
-      // Update inventory levels for updated products
-      if (result.updated && result.updated.length > 0) {
-        // Wait a bit for inventory items to be updated
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        const inventoryLevels: any[] = []
-        const seenCombinations = new Set<string>()
-
-        for (let j = 0; j < result.updated.length; j++) {
-          const updatedProduct = result.updated[j]
-          // Get SKU from updated product variant to find location/stock
-          const productSku = batch[j]?.variants?.[0]?.sku
-          const { locationId, stock } = productSku && updateSkuMap.has(productSku)
-            ? updateSkuMap.get(productSku)!
-            : { locationId: defaultLocationId, stock: 0 }
-
-          // Get product ID from result
-          const productId = updatedProduct.id
-          if (!productId) continue
-
-          // Query the updated product to get variants with inventory items
-          const { data: updatedProducts } = await query.graph({
-            entity: "product",
-            fields: [
-              "id",
-              "variants.id",
-              "variants.sku",
-              "variants.inventory_items.inventory_item_id",
-            ],
-            filters: {
-              id: productId,
-            },
-          })
-
-          if (updatedProducts && updatedProducts.length > 0) {
-            const product = updatedProducts[0]
-            if (product.variants && product.variants.length > 0) {
-              // Only process the first variant (we create one variant per product)
-              const variant = product.variants[0]
-
-              // Get inventory item ID from variant link
-              let inventoryItemId: string | null = null
-
-              // First try to get from inventory_items link
-              if ((variant as any).inventory_items?.[0]?.inventory_item_id) {
-                inventoryItemId = (variant as any).inventory_items[0].inventory_item_id
-              } else {
-                // Try to find by variant link
-                const { data: variantLinks } = await query.graph({
-                  entity: "link_product_variant_inventory_item",
-                  fields: ["inventory_item_id"],
-                  filters: {
-                    variant_id: variant.id,
-                  },
-                })
-
-                if (variantLinks && variantLinks.length > 0) {
-                  inventoryItemId = (variantLinks[0] as any).inventory_item_id
-                } else if (variant.sku) {
-                  // Last resort: try to find inventory item by SKU
-                  const { data: inventoryItems } = await query.graph({
-                    entity: "inventory_item",
-                    fields: ["id"],
-                    filters: {
-                      sku: variant.sku,
-                    },
-                  })
-
-                  if (inventoryItems && inventoryItems.length > 0) {
-                    inventoryItemId = inventoryItems[0].id
-                  }
-                }
-              }
-
-              // Only add if we found an inventory item and this combination doesn't exist
-              if (inventoryItemId) {
-                const combinationKey = `${locationId}:${inventoryItemId}`
-
-                // Check if inventory level already exists
-                const { data: existingLevels } = await query.graph({
-                  entity: "inventory_level",
-                  fields: ["id"],
-                  filters: {
-                    location_id: locationId,
-                    inventory_item_id: inventoryItemId,
-                  },
-                })
-
-                // Update or create inventory level
-                if (existingLevels && existingLevels.length > 0) {
-                  // Update existing inventory level (use updateInventoryLevelsWorkflow if available)
-                  // For now, we'll create a new one which should update if workflow handles it
-                  if (!seenCombinations.has(combinationKey)) {
-                    seenCombinations.add(combinationKey)
-                    inventoryLevels.push({
-                      location_id: locationId,
-                      inventory_item_id: inventoryItemId,
-                      stocked_quantity: stock,
-                    })
-                  }
-                } else {
-                  // Create new inventory level
-                  if (!seenCombinations.has(combinationKey)) {
-                    seenCombinations.add(combinationKey)
-                    inventoryLevels.push({
-                      location_id: locationId,
-                      inventory_item_id: inventoryItemId,
-                      stocked_quantity: stock,
-                    })
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Create/update inventory levels if any
-        if (inventoryLevels.length > 0) {
-          try {
-            await createInventoryLevelsWorkflow(req.scope).run({
-              input: {
-                inventory_levels: inventoryLevels,
-              },
-            })
-          } catch (inventoryError) {
-            console.error("Error updating inventory levels:", inventoryError)
-            // Continue even if inventory level update fails
-          }
-        }
       }
     }
 
@@ -1346,7 +892,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       summary: {
         stats: {
           created: totalCreated,
-          updated: totalUpdated,
+          updated: 0,
         },
       },
     })
