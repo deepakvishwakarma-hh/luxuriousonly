@@ -183,7 +183,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "Status",
       "Subtitle",
       "Thumbnail",
+      "Thumbnail Alt",
       "Images",
+      "Images Alt",
+      "Categories",
       "sales_channel_id",
       "location_id",
       "stock",
@@ -223,10 +226,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         }
       }
 
-      // Extract images (comma-separated URLs)
+      // Extract images (comma-separated URLs) and alt texts
       let imagesValue = ""
+      let imagesAltValue = ""
       if (product.images && Array.isArray(product.images) && product.images.length > 0) {
         imagesValue = product.images.map((img: any) => img.url || "").filter(Boolean).join(",")
+        imagesAltValue = product.images.map((img: any) => img.alt || "").filter(Boolean).join(",")
+      }
+
+      // Extract thumbnail alt text from metadata
+      let thumbnailAltValue = ""
+      if (metadata.thumbnail_alt) {
+        thumbnailAltValue = String(metadata.thumbnail_alt)
       }
 
       // Extract categories (comma-separated names)
@@ -245,7 +256,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         product.status || "",
         product.subtitle || "",
         product.thumbnail || "",
+        thumbnailAltValue,
         imagesValue,
+        imagesAltValue,
         categoriesValue,
         salesChannelId,
         locationId,

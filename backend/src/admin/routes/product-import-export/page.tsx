@@ -311,7 +311,9 @@ const ProductImportExportPage = () => {
       "categories",
       "tags",
       "thumbnail",
+      "thumbnail_alt",
       "images",
+      "images_alt",
       "brand",
       "model",
       "color_code",
@@ -365,8 +367,11 @@ const ProductImportExportPage = () => {
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Ray-Ban Aviator Classic Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Ray-Ban Aviator Classic Black front view|Ray-Ban Aviator Classic Black side view",
         brand: "Ray-Ban",
         model: "Aviator",
         color_code: "BLK-001",
@@ -417,8 +422,11 @@ const ProductImportExportPage = () => {
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Ray-Ban Aviator Classic Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Ray-Ban Aviator Classic Black front view|Ray-Ban Aviator Classic Black side view",
         brand: "Ray-Ban",
         model: "Aviator",
         color_code: "BLK-001",
@@ -469,8 +477,11 @@ const ProductImportExportPage = () => {
         tags: "classic,aviator,premium",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Ray-Ban Aviator Classic Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Ray-Ban Aviator Classic Black front view|Ray-Ban Aviator Classic Black side view",
         brand: "Ray-Ban",
         model: "Aviator",
         color_code: "BLK-001",
@@ -520,8 +531,11 @@ const ProductImportExportPage = () => {
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Oakley Holbrook Matte Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Oakley Holbrook Matte Black front view|Oakley Holbrook Matte Black side view",
         brand: "Oakley",
         model: "Holbrook",
         color_code: "MAT-001",
@@ -571,8 +585,11 @@ const ProductImportExportPage = () => {
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Oakley Holbrook Matte Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Oakley Holbrook Matte Black front view|Oakley Holbrook Matte Black side view",
         brand: "Oakley",
         model: "Holbrook",
         color_code: "MAT-001",
@@ -622,8 +639,11 @@ const ProductImportExportPage = () => {
         tags: "oakley,sport,prizm",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Oakley Holbrook Matte Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Oakley Holbrook Matte Black front view|Oakley Holbrook Matte Black side view",
         brand: "Oakley",
         model: "Holbrook",
         color_code: "MAT-001",
@@ -674,8 +694,11 @@ const ProductImportExportPage = () => {
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Gucci GG0061S Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Gucci GG0061S Black front view|Gucci GG0061S Black side view",
         brand: "Gucci",
         model: "GG0061S",
         color_code: "BLK-GG001",
@@ -726,8 +749,11 @@ const ProductImportExportPage = () => {
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Gucci GG0061S Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Gucci GG0061S Black front view|Gucci GG0061S Black side view",
         brand: "Gucci",
         model: "GG0061S",
         color_code: "BLK-GG001",
@@ -778,8 +804,11 @@ const ProductImportExportPage = () => {
         tags: "gucci,luxury,designer",
         thumbnail:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        thumbnail_alt: "Gucci GG0061S Black sunglasses thumbnail",
         images:
           "https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg|https://static5.lenskart.com/media/catalog/product/pro/1/thumbnail/480x480/9df78eab33525d08d6e5fb8d27136e95//m/i/orange-black-full-rim-square-meller-mel-s18834-sunglasses_238660_1_meller_22_11_2025.jpg",
+        images_alt:
+          "Gucci GG0061S Black front view|Gucci GG0061S Black side view",
         brand: "Gucci",
         model: "GG0061S",
         color_code: "BLK-GG001",
@@ -846,7 +875,9 @@ const ProductImportExportPage = () => {
         product.categories,
         product.tags,
         product.thumbnail,
+        product.thumbnail_alt || "",
         product.images,
+        product.images_alt || "",
         product.brand,
         product.model,
         product.color_code,
