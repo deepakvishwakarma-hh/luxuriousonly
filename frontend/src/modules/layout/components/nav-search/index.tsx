@@ -1,6 +1,11 @@
 "use client"
 
-import { useRouter, useSearchParams, usePathname, useParams } from "next/navigation"
+import {
+  useRouter,
+  useSearchParams,
+  usePathname,
+  useParams,
+} from "next/navigation"
 import { useState, FormEvent, useEffect, useRef, useCallback } from "react"
 import useSWR from "swr"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
@@ -52,20 +57,22 @@ export default function NavSearch() {
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
   // Build search API URL
-  const searchApiUrl = query.trim().length >= 2
-    ? (() => {
-        const backendUrl = typeof window !== "undefined" 
-          ? (window.location.origin.includes("localhost") 
-              ? "http://localhost:9000" 
-              : window.location.origin.replace(/:\d+$/, ":9000"))
-          : process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
-        const params = new URLSearchParams()
-        params.set("search", query.trim())
-        params.set("limit", "6")
-        params.set("offset", "0")
-        return `${backendUrl}/store/products/filter?${params.toString()}`
-      })()
-    : null
+  const searchApiUrl =
+    query.trim().length >= 2
+      ? (() => {
+          const backendUrl =
+            typeof window !== "undefined"
+              ? window.location.origin.includes("localhost")
+                ? "http://localhost:9000"
+                : window.location.origin.replace(/:\d+$/, ":9000")
+              : process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+          const params = new URLSearchParams()
+          params.set("search", query.trim())
+          params.set("limit", "4")
+          params.set("offset", "0")
+          return `${backendUrl}/store/products/filter?${params.toString()}`
+        })()
+      : null
 
   // Fetch search suggestions with debouncing
   const { data: searchData, isLoading: isSearching } = useSWR<SearchResponse>(
@@ -109,7 +116,9 @@ export default function NavSearch() {
     setIsTyping(false)
     setShowSuggestions(false)
     if (query.trim()) {
-      router.push(`/${countryCode}/filter?search=${encodeURIComponent(query.trim())}`)
+      router.push(
+        `/${countryCode}/filter?search=${encodeURIComponent(query.trim())}`
+      )
     } else {
       router.push(`/${countryCode}/filter`)
     }
@@ -132,7 +141,9 @@ export default function NavSearch() {
     setShowSuggestions(false)
     setIsTyping(false)
     if (query.trim()) {
-      router.push(`/${countryCode}/filter?search=${encodeURIComponent(query.trim())}`)
+      router.push(
+        `/${countryCode}/filter?search=${encodeURIComponent(query.trim())}`
+      )
     } else {
       router.push(`/${countryCode}/filter`)
     }
@@ -142,7 +153,7 @@ export default function NavSearch() {
     const value = e.target.value
     setIsTyping(true)
     setQuery(value)
-    
+
     // Show suggestions if query is at least 2 characters
     if (value.trim().length >= 2) {
       setShowSuggestions(true)
@@ -167,7 +178,7 @@ export default function NavSearch() {
   }
 
   const searchResults = searchData?.products || []
-  const hasMoreResults = (searchData?.count || 0) > 6
+  const hasMoreResults = (searchData?.count || 0) > 4
 
   return (
     <form onSubmit={handleSubmit} className="flex-1 w-full relative">
@@ -214,7 +225,7 @@ export default function NavSearch() {
       {showSuggestions && query.trim().length >= 2 && (
         <div
           ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-[400px] overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-[400px] overflow-y-auto px-2"
         >
           {isSearching ? (
             <div className="p-4 text-center text-sm text-gray-500">
@@ -222,19 +233,19 @@ export default function NavSearch() {
             </div>
           ) : searchResults.length > 0 ? (
             <>
-              <div className="py-2">
+              <div className="py-2 grid grid-cols-1 lg:grid-cols-2 gap-2">
                 {searchResults.map((product) => (
                   <button
                     key={product.id}
                     type="button"
                     onClick={() => handleProductClick(product.handle)}
-                    className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                    className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors border border-gray-200 rounded"
                   >
                     {product.thumbnail && (
                       <img
                         src={product.thumbnail}
                         alt={product.title}
-                        className="w-12 h-12 object-cover rounded"
+                        className="w-12 h-12 object-cover rounded flex-shrink-0"
                       />
                     )}
                     <div className="flex-1 min-w-0">
