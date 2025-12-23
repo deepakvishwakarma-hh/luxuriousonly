@@ -39,315 +39,329 @@ const Footer = () => {
       </div> */}
 
       {/* Footer Section */}
-      <footer className="w-full bg-gray-800 text-gray-300">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6">
-            {/* About Column */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">About</h3>
-              <div className="space-y-3 text-sm leading-relaxed">
-                <p>
-                  Explore Designer Luxury Eyewear at luxuryeyewear.in Our
-                  exclusive collection of premium Sunglasses, Eyeglasses,
-                  Glasses & Frames offers unmatched quality and style. Join the
-                  elite who appreciate the finer things. Elevate your look with
-                  our timeless elegance. Order today and embrace sophistication.
-                </p>
-                <div className="pt-2 space-y-2">
-                  <p className="flex items-center gap-2">
-                    <FaPhone className="text-gray-300" size={14} />
+      <footer className="w-full bg-black text-gray-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Main Footer Content */}
+          <div className="py-12 lg:py-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+              {/* About Column */}
+              <div className="lg:col-span-1">
+                <h3 className="text-white font-bold text-base mb-5 uppercase tracking-wide">
+                  About
+                </h3>
+                <div className="space-y-4 text-sm leading-relaxed text-gray-400">
+                  <p>
+                    Explore Designer Luxury Eyewear at luxuryeyewear.in Our
+                    exclusive collection of premium Sunglasses, Eyeglasses,
+                    Glasses & Frames offers unmatched quality and style.
+                  </p>
+                  <div className="pt-2 space-y-3">
                     <a
                       href="tel:+919871981806"
-                      className="hover:text-white transition-colors"
+                      className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors group"
                     >
-                      +91 9871981806
+                      <FaPhone
+                        className="text-gray-500 group-hover:text-white transition-colors"
+                        size={16}
+                      />
+                      <span>+91 9871981806</span>
                     </a>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <FaEnvelope className="text-gray-300" size={14} />
                     <a
                       href="mailto:support@luxuryeyewear.in"
-                      className="hover:text-white transition-colors"
+                      className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors group"
                     >
-                      support@luxuryeyewear.in
+                      <FaEnvelope
+                        className="text-gray-500 group-hover:text-white transition-colors"
+                        size={16}
+                      />
+                      <span>support@luxuryeyewear.in</span>
                     </a>
-                  </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Information Column */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">
-                Information
-              </h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <LocalizedClientLink
-                    href="/about-us"
-                    className="hover:text-white transition-colors"
-                  >
-                    About us
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/contact-us"
-                    className="hover:text-white transition-colors"
-                  >
-                    Contact us
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/return-refund-policy"
-                    className="hover:text-white transition-colors"
-                  >
-                    Return & Refund Policy
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/delivery-shipping"
-                    className="hover:text-white transition-colors"
-                  >
-                    Delivery & Shipping
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/privacy-policy"
-                    className="hover:text-white transition-colors"
-                  >
-                    Privacy Policy
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/terms-conditions"
-                    className="hover:text-white transition-colors"
-                  >
-                    Terms & Conditions
-                  </LocalizedClientLink>
-                </li>
-              </ul>
-            </div>
-
-            {/* Shop By Popular Brands Column */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">
-                Shop By Popular Brands
-              </h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/burberry"
-                    className="hover:text-white transition-colors"
-                  >
-                    Burberry Glasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/carrera"
-                    className="hover:text-white transition-colors"
-                  >
-                    Carrera Sunglasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/gucci"
-                    className="hover:text-white transition-colors"
-                  >
-                    Gucci Glasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/ic-berlin"
-                    className="hover:text-white transition-colors"
-                  >
-                    Ic Berlin Glasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/tom-ford"
-                    className="hover:text-white transition-colors"
-                  >
-                    Tom Ford Glasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/versace"
-                    className="hover:text-white transition-colors"
-                  >
-                    Versace Sunglasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands/philippe-charriol"
-                    className="hover:text-white transition-colors"
-                  >
-                    Philippe Charriol Glasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/brands"
-                    className="hover:text-white transition-colors font-medium"
-                  >
-                    View All Eyewear Brands
-                  </LocalizedClientLink>
-                </li>
-              </ul>
-            </div>
-
-            {/* Quick Shop Column */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">
-                Quick Shop
-              </h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <LocalizedClientLink
-                    href="/sunglasses"
-                    className="hover:text-white transition-colors"
-                  >
-                    Shop sunglasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/sunglasses/men"
-                    className="hover:text-white transition-colors"
-                  >
-                    Sunglasses for Man
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/sunglasses/women"
-                    className="hover:text-white transition-colors"
-                  >
-                    Sunglasses for Women
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/sunglasses/kids"
-                    className="hover:text-white transition-colors"
-                  >
-                    Kids Sunglasses
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/glasses"
-                    className="hover:text-white transition-colors"
-                  >
-                    Shop Glasses Frames
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/glasses/men"
-                    className="hover:text-white transition-colors"
-                  >
-                    Glasses for men
-                  </LocalizedClientLink>
-                </li>
-                <li>
-                  <LocalizedClientLink
-                    href="/glasses/women"
-                    className="hover:text-white transition-colors"
-                  >
-                    Glasses for women
-                  </LocalizedClientLink>
-                </li>
-              </ul>
-            </div>
-
-            {/* Newsletter & Quick Links Column */}
-            <div>
-              {/* Newsletter Sign Up */}
-              <div className="mb-8">
-                <h3 className="text-white font-semibold text-lg mb-4">
-                  Newsletter Sign Up
-                </h3>
-                <p className="text-sm mb-4">
-                  Sign up for new arrivals, offers, and more!
-                </p>
-                <form onSubmit={handleNewsletterSubmit} className="flex gap-0">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                    className="flex-1 px-4 py-2 bg-white border border-white rounded-l text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-white hover:bg-gray-100 text-gray-900 font-semibold py-2 px-6 rounded-r transition-colors uppercase text-sm whitespace-nowrap"
-                  >
-                    SEND
-                  </button>
-                </form>
-              </div>
-
-              {/* Quick Links */}
+              {/* Information Column */}
               <div>
-                <h3 className="text-white font-semibold text-lg mb-4">
-                  Quick Links
+                <h3 className="text-white font-bold text-base mb-5 uppercase tracking-wide">
+                  Information
                 </h3>
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-3 text-sm">
                   <li>
                     <LocalizedClientLink
-                      href="/account"
-                      className="hover:text-white transition-colors"
+                      href="/about-us"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
                     >
-                      My Account
+                      About us
                     </LocalizedClientLink>
                   </li>
                   <li>
                     <LocalizedClientLink
-                      href="/wishlist"
-                      className="hover:text-white transition-colors"
+                      href="/contact-us"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
                     >
-                      Wishlist
+                      Contact us
                     </LocalizedClientLink>
                   </li>
                   <li>
                     <LocalizedClientLink
-                      href="/track-order"
-                      className="hover:text-white transition-colors"
+                      href="/return-refund-policy"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
                     >
-                      Track Your Order
+                      Return & Refund Policy
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/delivery-shipping"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Delivery & Shipping
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/privacy-policy"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Privacy Policy
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/terms-conditions"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Terms & Conditions
                     </LocalizedClientLink>
                   </li>
                 </ul>
               </div>
+
+              {/* Shop By Popular Brands Column */}
+              <div>
+                <h3 className="text-white font-bold text-base mb-5 uppercase tracking-wide">
+                  Popular Brands
+                </h3>
+                <ul className="space-y-3 text-sm">
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/burberry"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Burberry Glasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/carrera"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Carrera Sunglasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/gucci"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Gucci Glasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/ic-berlin"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Ic Berlin Glasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/tom-ford"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Tom Ford Glasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/versace"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Versace Sunglasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands/philippe-charriol"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Philippe Charriol Glasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/brands"
+                      className="text-gray-300 hover:text-white transition-colors inline-block font-medium"
+                    >
+                      View All Brands →
+                    </LocalizedClientLink>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Quick Shop Column */}
+              <div>
+                <h3 className="text-white font-bold text-base mb-5 uppercase tracking-wide">
+                  Quick Shop
+                </h3>
+                <ul className="space-y-3 text-sm">
+                  <li>
+                    <LocalizedClientLink
+                      href="/sunglasses"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Shop sunglasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/sunglasses/men"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Sunglasses for Men
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/sunglasses/women"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Sunglasses for Women
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/sunglasses/kids"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Kids Sunglasses
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/glasses"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Shop Glasses Frames
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/glasses/men"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Glasses for Men
+                    </LocalizedClientLink>
+                  </li>
+                  <li>
+                    <LocalizedClientLink
+                      href="/glasses/women"
+                      className="text-gray-400 hover:text-white transition-colors inline-block"
+                    >
+                      Glasses for Women
+                    </LocalizedClientLink>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Newsletter & Quick Links Column */}
+              <div>
+                {/* Newsletter Sign Up */}
+                <div className="mb-8">
+                  <h3 className="text-white font-bold text-base mb-4 uppercase tracking-wide">
+                    Newsletter
+                  </h3>
+                  <p className="text-sm mb-5 text-gray-400">
+                    Sign up for new arrivals, offers, and more!
+                  </p>
+                  <form
+                    onSubmit={handleNewsletterSubmit}
+                    className="flex flex-col sm:flex-row gap-0"
+                  >
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-l text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:border-white transition-all text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-white hover:bg-gray-100 text-black font-semibold py-3 px-6 rounded-r transition-colors uppercase text-xs whitespace-nowrap tracking-wider"
+                    >
+                      Subscribe
+                    </button>
+                  </form>
+                </div>
+
+                {/* Quick Links */}
+                <div>
+                  <h3 className="text-white font-bold text-base mb-5 uppercase tracking-wide">
+                    Quick Links
+                  </h3>
+                  <ul className="space-y-3 text-sm">
+                    <li>
+                      <LocalizedClientLink
+                        href="/account"
+                        className="text-gray-400 hover:text-white transition-colors inline-block"
+                      >
+                        My Account
+                      </LocalizedClientLink>
+                    </li>
+                    <li>
+                      <LocalizedClientLink
+                        href="/wishlist"
+                        className="text-gray-400 hover:text-white transition-colors inline-block"
+                      >
+                        Wishlist
+                      </LocalizedClientLink>
+                    </li>
+                    <li>
+                      <LocalizedClientLink
+                        href="/track-order"
+                        className="text-gray-400 hover:text-white transition-colors inline-block"
+                      >
+                        Track Your Order
+                      </LocalizedClientLink>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom Bar */}
-        <div className="bg-black w-full">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-center items-center relative">
-            <p className="text-white text-xs md:text-sm text-center">
-              Copyright © 2025 Luxuryeyewear.In All Rights Reserved.
-            </p>
-            <button
-              onClick={scrollToTop}
-              className="absolute right-4 w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center transition-colors"
-              aria-label="Scroll to top"
-            >
-              <IoArrowUp className="text-gray-900" size={18} />
-            </button>
+          {/* Divider */}
+          <div className="border-t border-gray-800"></div>
+
+          {/* Bottom Bar */}
+          <div className="py-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 relative">
+              <p className="text-gray-500 text-xs sm:text-sm text-center sm:text-left">
+                Copyright © 2025 Luxuryeyewear.In All Rights Reserved.
+              </p>
+              <button
+                onClick={scrollToTop}
+                className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-gray-600 flex items-center justify-center transition-all group"
+                aria-label="Scroll to top"
+              >
+                <IoArrowUp
+                  className="text-white group-hover:text-white transition-colors"
+                  size={20}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </footer>
