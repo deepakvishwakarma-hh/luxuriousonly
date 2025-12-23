@@ -2,7 +2,7 @@ import { Metadata } from "next"
 
 import { getBaseURL } from "@lib/util/env"
 import { listCartOptions, retrieveCart } from "@lib/data/cart"
-import Aside from "@modules/layout/templates/aside"
+// import Aside from "@modules/layout/templates/aside"
 import { retrieveCustomer } from "@lib/data/customer"
 import { StoreCartShippingOption } from "@medusajs/types"
 import CartMismatchBanner from "@modules/layout/components/cart-mismatch-banner"
@@ -28,10 +28,10 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="w-full h-screen flex">
-        <Aside />
+      <div className="w-full h-screen flex--">
+        {/* <Aside /> */}
 
-        <main className="border-dashed flex-1  ml-0 md:ml-[60px] w-full h-screen overflow-y-auto overflow-x-hidden  ">
+        <main className="border-dashed flex-1  ml-0 md:ml-[60px]-- w-full h-screen --overflow-y-auto overflow-x-hidden--  ">
           <Nav />
           <CategoryNavigation />
           {customer && cart && (
