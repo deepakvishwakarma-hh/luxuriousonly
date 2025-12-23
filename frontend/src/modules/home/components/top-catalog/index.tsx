@@ -29,18 +29,12 @@ const catalogItems: CatalogItem[] = [
     imageSrc: "/sample/top-cat1.webp",
     imageAlt: "Woman wearing ski goggles",
   },
-  {
-    title: "WATCHES",
-    href: "/watches",
-    imageSrc: "/sample/top-cat1.webp",
-    imageAlt: "Woman wearing watches",
-  },
 ]
 
 const TopCatalog = () => {
   return (
     <div className="w-full content-container py-5">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         {catalogItems.map((item, index) => (
           <div
             key={index}
