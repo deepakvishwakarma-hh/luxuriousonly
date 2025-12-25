@@ -38,20 +38,38 @@ export default function HeroCarousel({ carousels }: HeroCarouselProps) {
         className="hero-carousel"
       >
         {carousels.map((carousel) => {
-          const imageUrl = carousel.image_url1 || carousel.image_url2
-          if (!imageUrl) return null
+          // Use image_url1 for desktop, image_url2 for mobile
+          const desktopImageUrl = carousel.image_url1 || carousel.image_url2
+          const mobileImageUrl = carousel.image_url2 || carousel.image_url1
+
+          if (!desktopImageUrl && !mobileImageUrl) return null
 
           const slideContent = (
             <div className="relative w-full h-[500px] md:h-[600px] group overflow-hidden">
-              <Image
-                quality={100}
-                src={imageUrl}
-                alt="Carousel slide"
-                fill
-                priority
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="100vw"
-              />
+              {/* Desktop image - visible on md and larger screens */}
+              {desktopImageUrl && (
+                <Image
+                  quality={100}
+                  src={desktopImageUrl}
+                  alt="Carousel slide"
+                  fill
+                  priority
+                  className="object-cover transition-transform duration-500 group-hover:scale-105 hidden md:block"
+                  sizes="100vw"
+                />
+              )}
+              {/* Mobile image - visible on small screens */}
+              {mobileImageUrl && (
+                <Image
+                  quality={100}
+                  src={mobileImageUrl}
+                  alt="Carousel slide"
+                  fill
+                  priority
+                  className="object-cover transition-transform duration-500 group-hover:scale-105 block md:hidden"
+                  sizes="100vw"
+                />
+              )}
             </div>
           )
 
