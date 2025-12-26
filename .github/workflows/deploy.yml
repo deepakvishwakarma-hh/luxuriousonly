@@ -50,9 +50,41 @@ jobs:
             echo "📦 Installing dependencies..."
             npm install --force
 
-            # Rebuild native dependencies for correct architecture
-            echo "🔧 Rebuilding native dependencies..."
-            npm rebuild @swc/core || true
+            # Fix SWC native binding for Linux x64 architecture
+            echo "🔧 Fixing SWC native bindings for Linux x64..."
+            # Remove existing SWC packages to ensure clean install
+            rm -rf node_modules/@swc/core node_modules/@swc/core-linux-x64-gnu 2>/dev/null || true
+            # Install SWC core and platform-specific bindings
+            echo "Installing @swc/core..."
+            npm install @swc/core --force
+            echo "Installing @swc/core-linux-x64-gnu..."
+            npm install @swc/core-linux-x64-gnu --force --save-optional
+            # Rebuild to ensure native bindings are correct
+            echo "Rebuilding @swc/core..."
+            npm rebuild @swc/core --force
+            # Verify SWC installation
+            if [ ! -d "node_modules/@swc/core-linux-x64-gnu" ]; then
+              echo "❌ Error: @swc/core-linux-x64-gnu still not found after installation!"
+              echo "Listing @swc directory contents:"
+              ls -la node_modules/@swc/ || true
+              exit 1
+            else
+              echo "✅ @swc/core-linux-x64-gnu installed successfully"
+            fi
+
+            # Verify medusa-config.ts exists before building
+            if [ ! -f "medusa-config.ts" ]; then
+              echo "❌ Error: medusa-config.ts not found!"
+              echo "Current directory: $(pwd)"
+              echo "Files in current directory:"
+              ls -la | head -20
+              exit 1
+            else
+              echo "✅ medusa-config.ts found"
+            fi
+
+            # Set NODE_ENV for production build
+            export NODE_ENV=production
 
             echo "🔨 Building..."
             npm run build
