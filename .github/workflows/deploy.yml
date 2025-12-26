@@ -35,7 +35,7 @@ jobs:
           debug: true
           script: |
 
-            set +e  # Don't exit on error, we'll handle errors manually
+            set -e  # Exit immediately if a command exits with a non-zero status
 
             echo "🚀 Deploying BACKEND"
             cd /root/luxuriousonly/backend || { echo "❌ Backend directory not found!"; exit 1; }
@@ -45,7 +45,7 @@ jobs:
             git config pull.rebase false || true
 
             echo "📥 Pulling latest changes..."
-            timeout 60 git pull origin main || { echo "⚠️ Git pull failed or timed out"; exit 1; }
+            timeout 60 git pull origin main || { echo "❌ Git pull failed or timed out"; exit 1; }
 
             echo "📦 Installing dependencies..."
             npm install --force
@@ -55,7 +55,7 @@ jobs:
             npm rebuild @swc/core || true
 
             echo "🔨 Building..."
-            npm run build || { echo "⚠️ Build failed, but continuing..."; }
+            npm run build
 
             echo "✅ Backend code updated"
 
@@ -67,13 +67,13 @@ jobs:
             git config pull.rebase false || true
 
             echo "📥 Pulling latest changes..."
-            timeout 60 git pull origin main || { echo "⚠️ Git pull failed or timed out"; exit 1; }
+            timeout 60 git pull origin main || { echo "❌ Git pull failed or timed out"; exit 1; }
 
             echo "📦 Installing dependencies..."
             npm install --force
 
             echo "🔨 Building..."
-            npm run build || { echo "⚠️ Frontend build failed, but continuing..."; }
+            npm run build
 
             echo "✅ Frontend code updated"
 
@@ -82,11 +82,10 @@ jobs:
 
             if [ -f ecosystem.config.js ]; then
               echo "📋 Found ecosystem.config.js, reloading PM2 apps..."
-              pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js || echo "⚠️ PM2 reload/start failed"
+              pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js || { echo "❌ PM2 reload/start failed"; exit 1; }
             else
-              echo "⚠️ ecosystem.config.js not found, starting apps individually..."
-              pm2 reload luxurious-backend || pm2 start npm --name "luxurious-backend" --cwd "./backend" -- run start || echo "⚠️ Backend PM2 start failed"
-              pm2 reload luxurious-frontend || pm2 start npm --name "luxurious-frontend" --cwd "./frontend" -- run start || echo "⚠️ Frontend PM2 start failed"
+              echo "❌ ecosystem.config.js not found!"
+              exit 1
             fi
 
             echo "✅ Deployment completed"
