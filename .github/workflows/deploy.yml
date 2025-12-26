@@ -1,0 +1,129 @@
+name: Deploy Backend & Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p $HOME/.ssh
+          ssh-keyscan -H 31.97.226.111 >> $HOME/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: 31.97.226.111
+          username: root
+          key: |
+            -----BEGIN OPENSSH PRIVATE KEY-----
+            b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+            QyNTUxOQAAACBXB4iplWwisVppwA1bSHR9yOK1usTxigvEUeafmaxKrQAAAJiy/ptAsv6b
+            QAAAAAtzc2gtZWQyNTUxOQAAACBXB4iplWwisVppwA1bSHR9yOK1usTxigvEUeafmaxKrQ
+            AAAEC3SqwwYZ9j0oE6oG8ef5XeyNcoPHvweISG2qwQCcrNa1cHiKmVbCKxWmnADVtIdH3I
+            4rW6xPGKC8RR5p+ZrEqtAAAADmdpdGh1Yi1hY3Rpb25zAQIDBAUGBw==
+            -----END OPENSSH PRIVATE KEY-----
+          port: 22
+          debug: true
+          script: |
+
+            set -e  # Exit immediately if a command exits with a non-zero status
+
+            echo "🚀 Deploying BACKEND"
+            cd /root/luxuriousonly/backend || { echo "❌ Backend directory not found!"; exit 1; }
+
+            # Configure git to avoid prompts
+            git config --global --add safe.directory /root/luxuriousonly/backend || true
+            git config pull.rebase false || true
+
+            echo "📥 Pulling latest changes..."
+            timeout 60 git pull origin main || { echo "❌ Git pull failed or timed out"; exit 1; }
+
+            echo "📦 Installing dependencies..."
+            npm install --force
+
+            # Fix SWC native binding for Linux x64 architecture
+            echo "🔧 Fixing SWC native bindings for Linux x64..."
+            # Remove existing SWC packages to ensure clean install
+            rm -rf node_modules/@swc/core node_modules/@swc/core-linux-x64-gnu 2>/dev/null || true
+            # Install SWC core and platform-specific bindings
+            echo "Installing @swc/core..."
+            npm install @swc/core --force
+            echo "Installing @swc/core-linux-x64-gnu..."
+            npm install @swc/core-linux-x64-gnu --force --save-optional
+            # Rebuild to ensure native bindings are correct
+            echo "Rebuilding @swc/core..."
+            npm rebuild @swc/core --force
+            # Verify SWC installation
+            if [ ! -d "node_modules/@swc/core-linux-x64-gnu" ]; then
+              echo "❌ Error: @swc/core-linux-x64-gnu still not found after installation!"
+              echo "Listing @swc directory contents:"
+              ls -la node_modules/@swc/ || true
+              exit 1
+            else
+              echo "✅ @swc/core-linux-x64-gnu installed successfully"
+            fi
+
+            # Verify medusa-config.ts exists before building
+            if [ ! -f "medusa-config.ts" ]; then
+              echo "❌ Error: medusa-config.ts not found!"
+              echo "Current directory: $(pwd)"
+              echo "Files in current directory:"
+              ls -la | head -20
+              exit 1
+            else
+              echo "✅ medusa-config.ts found"
+            fi
+
+            # Set NODE_ENV for production build
+            export NODE_ENV=production
+
+            echo "🔨 Building..."
+            npm run build
+
+            echo "✅ Backend code updated"
+
+            echo "🚀 Deploying FRONTEND"
+            cd /root/luxuriousonly/frontend || { echo "❌ Frontend directory not found!"; exit 1; }
+
+            # Configure git to avoid prompts
+            git config --global --add safe.directory /root/luxuriousonly/frontend || true
+            git config pull.rebase false || true
+
+            echo "📥 Pulling latest changes..."
+            timeout 60 git pull origin main || { echo "❌ Git pull failed or timed out"; exit 1; }
+
+            echo "📦 Installing dependencies..."
+            npm install --force
+
+            echo "🔨 Building..."
+            npm run build
+
+            echo "✅ Frontend code updated"
+
+            echo "🔄 Reloading PM2 from project root..."
+            cd /root/luxuriousonly || { echo "❌ Project root not found!"; exit 1; }
+
+            if [ -f ecosystem.config.js ]; then
+              echo "📋 Found ecosystem.config.js, reloading PM2 apps..."
+              pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js || { echo "❌ PM2 reload/start failed"; exit 1; }
+            else
+              echo "❌ ecosystem.config.js not found!"
+              exit 1
+            fi
+
+            echo "✅ Deployment completed"
+
+            echo ""
+            echo "📊 Deployment Summary:"
+            pm2 list
+            echo ""
+            echo "✅ CI/CD Pipeline completed successfully!"
