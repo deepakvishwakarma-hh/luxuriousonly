@@ -52,112 +52,102 @@ const ProductImageCarousel = ({
     alt: `${productTitle} - View ${idx + 1}`,
   }))
 
-  return (
-    <div className="grid grid-cols-[100px_calc(100%-100px)] gap-4">
-      <div className="">
-        {/* Thumbnail Carousel */}
-        {images.length > 1 && (
-          <div className="w-full mt-3">
-            <div
-              className="flex flex-col gap-2 overflow-y-auto"
-              style={{
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-              }}
-            >
-              {images.map((image, index) => (
-                <div
-                  key={index}
-                  className={`relative cursor-pointer flex-shrink-0 bg-neutral-100 rounded-lg overflow-hidden`}
-                  style={{
-                    width: "100px",
-                    height: "100px",
-                    border:
-                      activeImage === index
-                        ? "2px solid #d4af37"
-                        : "2px solid transparent",
-                  }}
-                  onClick={() => {
-                    if (swiperRef.current) {
-                      swiperRef.current.slideTo(index)
-                      setActiveImage(index)
-                    }
-                  }}
-                >
-                  <Image
-                    src={image}
-                    alt={`${productTitle} - View ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    priority={index === 0}
-                    sizes="80px"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Main Image Carousel */}
-      <div className="relative aspect-square w-full rounded bg-white mb-3">
-        <Swiper
-          spaceBetween={0}
-          pagination={{
-            clickable: true,
-            type: "bullets",
-          }}
-          modules={[Thumbs]}
-          className="h-full product-image-carousel"
-          onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
-          onSwiper={(swiper) => {
-            swiperRef.current = swiper
-          }}
+return (
+  <div className="grid grid-cols-1 md:grid-cols-[100px_calc(100%-100px)] gap-4">
+    {/* Thumbnails */}
+    {images.length > 1 && (
+      <div className="order-2 md:order-1">
+        <div
+          className="
+            flex md:flex-col gap-2
+            overflow-x-auto md:overflow-y-auto
+            scrollbar-hide
+          "
         >
           {images.map((image, index) => (
-            <SwiperSlide key={index}>
-              <div className="relative w-full h-full">
-                <Image
-                  src={image}
-                  alt={`${productTitle} - View ${index + 1}`}
-                  fill
-                  className="object-contain w-full h-full"
-                  priority={index === 0}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            </SwiperSlide>
+            <div
+              key={index}
+              className={`
+                relative cursor-pointer flex-shrink-0
+                bg-neutral-100 rounded-lg overflow-hidden
+                border-2
+                ${activeImage === index ? "border-[#d4af37]" : "border-transparent"}
+              `}
+              style={{
+                width: "80px",
+                height: "80px",
+              }}
+              onClick={() => {
+                swiperRef.current?.slideTo(index)
+                setActiveImage(index)
+              }}
+            >
+              <Image
+                src={image}
+                alt={`${productTitle} - View ${index + 1}`}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </div>
           ))}
-        </Swiper>
-        {/* Floating enlarge button */}
-        <button
-          className="absolute top-2.5 left-2.5 z-30 w-10 h-10 flex items-center justify-center text-black rounded-full border-2 border-black bg-transparent focus:outline-none"
-          type="button"
-          aria-label="Click to enlarge"
-          onClick={() => setLightboxOpen(true)}
-          tabIndex={0}
-        >
-          <BsArrowsFullscreen />
-        </button>
+        </div>
       </div>
+    )}
 
-      <Lightbox
-        open={lightboxOpen}
-        close={() => setLightboxOpen(false)}
-        slides={lightboxSlides}
-        index={activeImage}
-        plugins={[Fullscreen, Slideshow, Thumbnails, Zoom, Captions]}
-        on={{
-          view: ({ index }) => setActiveImage(index),
-        }}
-        render={
-          {
-            // Optionally, you can customize the slide rendering here
-          }
-        }
-      />
+    {/* Main Image */}
+    <div className="order-1 md:order-2 relative aspect-square w-full rounded bg-white">
+      <Swiper
+        spaceBetween={0}
+        modules={[Thumbs]}
+        className="h-full product-image-carousel"
+        onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
+        onSwiper={(swiper) => (swiperRef.current = swiper)}
+      >
+        {images.map((image, index) => (
+          <SwiperSlide key={index}>
+            <div className="relative w-full h-full">
+              <Image
+                src={image}
+                alt={`${productTitle} - View ${index + 1}`}
+                fill
+                className="object-contain"
+                priority={index === 0}
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      {/* Enlarge Button */}
+      <button
+        className="
+          absolute top-2 left-2 z-30
+          w-9 h-9 md:w-10 md:h-10
+          flex items-center justify-center
+          rounded-full border-2 border-black
+          bg-white/80 backdrop-blur
+        "
+        onClick={() => setLightboxOpen(true)}
+        aria-label="Enlarge image"
+      >
+        <BsArrowsFullscreen />
+      </button>
     </div>
-  )
+
+    {/* Lightbox */}
+    <Lightbox
+      open={lightboxOpen}
+      close={() => setLightboxOpen(false)}
+      slides={lightboxSlides}
+      index={activeImage}
+      plugins={[Fullscreen, Slideshow, Thumbnails, Zoom, Captions]}
+      on={{ view: ({ index }) => setActiveImage(index) }}
+    />
+  </div>
+)
+
 }
 
 export default ProductImageCarousel

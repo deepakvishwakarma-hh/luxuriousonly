@@ -1,5 +1,8 @@
-import { Suspense } from "react"
+"use client"
+
+import { Suspense, useEffect, useState } from "react"
 import Image from "next/image"
+import { HiOutlineMenu, HiX } from "react-icons/hi"
 
 import { listRegions } from "@lib/data/regions"
 import { retrieveCustomer } from "@lib/data/customer"
@@ -11,58 +14,114 @@ import AccountDropdown from "@modules/layout/components/account-dropdown"
 import CompareButton from "@modules/layout/components/compare-button"
 import LikedButton from "@modules/layout/components/liked-button"
 
-export default async function Nav() {
-  const regions = await listRegions().then((regions: StoreRegion[]) => regions)
-  const customer = await retrieveCustomer()
+export default function Nav() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [customer, setCustomer] = useState<any>(null)
+
+  useEffect(() => {
+    retrieveCustomer().then(setCustomer)
+  }, [])
 
   return (
-    <div className="sticky top-0 inset-x-0 z-50 group">
-      <header className="relative h-20  border-b duration-200 bg-white border-ui-border-base">
-        <nav className="px-10 txt-xsmall-plus text-ui-fg-subtle flex items-center gap-10 w-full h-full text-small-regular ">
-          {/* Left: Logo */}
-          <LocalizedClientLink
-            href="/"
-            className="flex flex-col items-start justify-center h-full hover:opacity-80 transition-opacity"
-            data-testid="nav-store-link"
-          >
-            <Image
-              src="/logo.avif"
-              alt="Luxurious Mart"
-              width={205}
-              height={66}
-              className="object-contain"
-            />
-          </LocalizedClientLink>
+    <div className="sticky top-0 inset-x-0 z-50 bg-white border-b border-ui-border-base">
 
-          {/* Center: Search */}
-          <div className="flex-1 flex justify-center">
+      {/* ================= HEADER ================= */}
+      <header className="h-16 md:h-20">
+        <nav className="px-4 md:px-10 flex items-center justify-between w-full h-full">
+
+          {/* LEFT: Hamburger + Logo */}
+          <div className="flex items-center gap-3">
+
+            {/* Hamburger (Mobile only) */}
+            <button
+              className="md:hidden"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open Menu"
+            >
+              <HiOutlineMenu size={24} />
+            </button>
+
+            {/* Logo */}
+            <LocalizedClientLink href="/" className="flex items-center">
+              <Image
+                src="/logo.avif"
+                alt="Luxurious Mart"
+                width={160}
+                height={50}
+                className="object-contain md:w-[205px] md:h-[66px]"
+              />
+            </LocalizedClientLink>
+          </div>
+
+          {/* CENTER: Desktop Search */}
+          <div className="hidden md:flex flex-1 justify-center px-10">
             <NavSearch />
           </div>
 
-          {/* Right: Account, Compare, Liked, Cart */}
-          <div className="flex items-center gap-x-6 h-full">
+          {/* RIGHT: Icons (ALWAYS visible like reference image) */}
+          <div className="flex items-center gap-x-3 md:gap-x-6">
+
+            {/* Login / Account ALWAYS visible */}
             <AccountDropdown customer={customer} />
 
-            <CompareButton />
+            <div className="hidden sm:block">
+              <CompareButton />
+            </div>
 
             <LikedButton />
 
-            <Suspense
-              fallback={
-                <LocalizedClientLink
-                  className="hover:text-ui-fg-base flex gap-2 items-center relative"
-                  href="/cart"
-                  data-testid="nav-cart-link"
-                >
-                  <span className="text-small-regular">Cart (0)</span>
-                </LocalizedClientLink>
-              }
-            >
+            <Suspense fallback={<span className="text-sm">Cart (0)</span>}>
               <CartButton />
             </Suspense>
           </div>
         </nav>
       </header>
+
+      {/* Mobile Search (unchanged) */}
+      <div className="px-4 pb-3 md:hidden">
+        <NavSearch />
+      </div>
+
+      {/* ================= HAMBURGER MENU ================= */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40">
+          <div className="absolute left-0 top-0 h-full w-[80%] max-w-sm bg-white p-5 shadow-lg">
+
+            {/* Close */}
+            <button
+              className="mb-6"
+              onClick={() => setMenuOpen(false)}
+            >
+              <HiX size={24} />
+            </button>
+
+            {/* ONLY NAV LINKS (not login/cart) */}
+            <div className="flex flex-col gap-4 text-sm">
+
+              <LocalizedClientLink href="/" onClick={() => setMenuOpen(false)}>
+                Home
+              </LocalizedClientLink>
+
+              <LocalizedClientLink href="/store" onClick={() => setMenuOpen(false)}>
+                Shop
+              </LocalizedClientLink>
+
+              <LocalizedClientLink href="/collections" onClick={() => setMenuOpen(false)}>
+                Collections
+              </LocalizedClientLink>
+
+              <LocalizedClientLink href="/about" onClick={() => setMenuOpen(false)}>
+                About Us
+              </LocalizedClientLink>
+
+              <LocalizedClientLink href="/contact" onClick={() => setMenuOpen(false)}>
+                Contact
+              </LocalizedClientLink>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
