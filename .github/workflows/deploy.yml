@@ -38,23 +38,43 @@ jobs:
             set -e
 
             echo "🚀 Deploying BACKEND"
-            cd /root/luxuriousonly/backend
+            cd /root/luxuriousonly/backend || { echo "❌ Backend directory not found!"; exit 1; }
 
-            git pull origin main
+            # Configure git to avoid prompts
+            git config --global --add safe.directory /root/luxuriousonly/backend || true
+            git config pull.rebase false || true
+
+            echo "📥 Pulling latest changes..."
+            timeout 60 git pull origin main || { echo "⚠️ Git pull failed or timed out"; exit 1; }
+
+            echo "📦 Installing dependencies..."
             npm install
+
+            echo "🔨 Building..."
             npm run build || true
 
+            echo "🔄 Reloading PM2..."
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
 
             echo "✅ Backend deployed successfully"
 
             echo "🚀 Deploying FRONTEND"
-            cd /root/luxuriousonly/frontend
+            cd /root/luxuriousonly/frontend || { echo "❌ Frontend directory not found!"; exit 1; }
 
-            git pull origin main
+            # Configure git to avoid prompts
+            git config --global --add safe.directory /root/luxuriousonly/frontend || true
+            git config pull.rebase false || true
+
+            echo "📥 Pulling latest changes..."
+            timeout 60 git pull origin main || { echo "⚠️ Git pull failed or timed out"; exit 1; }
+
+            echo "📦 Installing dependencies..."
             npm install
+
+            echo "🔨 Building..."
             npm run build
 
+            echo "🔄 Reloading PM2..."
             pm2 reload frontend || pm2 start npm --name "frontend" -- start
 
             echo "✅ Frontend deployed successfully"
