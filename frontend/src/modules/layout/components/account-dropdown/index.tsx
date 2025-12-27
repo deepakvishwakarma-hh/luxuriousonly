@@ -14,19 +14,31 @@ import ChevronDown from "@modules/common/icons/chevron-down"
 import User from "@modules/common/icons/user"
 import MapPin from "@modules/common/icons/map-pin"
 import Package from "@modules/common/icons/package"
+import Spinner from "@modules/common/icons/spinner"
 import { HttpTypes } from "@medusajs/types"
 import { signout } from "@lib/data/customer"
 
 type AccountDropdownProps = {
   customer: HttpTypes.StoreCustomer | null
+  isLoading?: boolean
 }
 
-export default function AccountDropdown({ customer }: AccountDropdownProps) {
+export default function AccountDropdown({ customer, isLoading = false }: AccountDropdownProps) {
   const { countryCode } = useParams() as { countryCode: string }
   const pathname = usePathname()
 
   const handleLogout = async () => {
     await signout(countryCode)
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        <Spinner size={16} />
+        <span className="text-small-regular text-ui-fg-subtle">Loading...</span>
+      </div>
+    )
   }
 
   if (!customer) {

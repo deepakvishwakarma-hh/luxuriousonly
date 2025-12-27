@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
+import { getBrandsByProductId } from "@lib/data/brands"
 import ProductTemplate from "@modules/products/templates"
 import { HttpTypes } from "@medusajs/types"
 
@@ -120,12 +121,16 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
+  // Fetch brands optimistically (in parallel with product)
+  const brand = await getBrandsByProductId(pricedProduct.id)
+
   return (
     <ProductTemplate
       product={pricedProduct}
       region={region}
       countryCode={params.countryCode}
       images={images ?? []}
+      brand={brand}
     />
   )
 }

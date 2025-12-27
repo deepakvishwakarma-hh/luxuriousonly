@@ -263,6 +263,10 @@ export default defineMiddlewares({
       matcher: "/admin/products/:id/brands",
       method: ["DELETE"],
     },
+    {
+      matcher: "/store/products/:id/brands",
+      method: ["GET"],
+    },
 
 
   ],

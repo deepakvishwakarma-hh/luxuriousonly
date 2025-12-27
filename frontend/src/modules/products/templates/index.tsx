@@ -12,12 +12,14 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import ProductActionsWrapper from "./product-actions-wrapper"
 import ProductImageCarousel from "@modules/products/components/image-gallery/product-image"
 import ProductInfoActions from "@modules/products/components/product-info-actions"
+import { Brand } from "@lib/data/brands"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   countryCode: string
   images: HttpTypes.StoreProductImage[]
+  brand: Brand | null
 }
 
 const ProductTemplate: React.FC<ProductTemplateProps> = ({
@@ -25,6 +27,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   region,
   countryCode,
   images,
+  brand,
 }) => {
   if (!product || !product.id) {
     return notFound()
@@ -68,7 +71,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </div>
           {/* right side  */}
           <div className="w-full md:w-1/2 ">
-            <ProductInfo product={product} />
+            <ProductInfo product={product} brand={brand} />
             <Suspense
               fallback={
                 <ProductActions
@@ -80,6 +83,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             >
               <ProductActionsWrapper id={product.id} region={region} />
             </Suspense>
+
             <ProductTabs product={product} />
             <ProductInfoActions />
           </div>

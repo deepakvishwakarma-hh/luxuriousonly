@@ -1,9 +1,12 @@
 import { Heading } from "@medusajs/ui"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { Brand } from "@lib/data/brands"
+import Image from "next/image"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
+  brand: Brand | null
 }
 
 // Helper function to check if a variant is in stock
@@ -27,7 +30,7 @@ const isVariantInStock = (variant: HttpTypes.StoreProductVariant): boolean => {
   return false
 }
 
-const ProductInfo = ({ product }: ProductInfoProps) => {
+const ProductInfo = ({ product, brand }: ProductInfoProps) => {
   // Check if product has any variant in stock
   const isInStock = (() => {
     if (!product.variants || product.variants.length === 0) {
@@ -38,22 +41,25 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
     return product.variants.some((variant) => isVariantInStock(variant))
   })()
 
-  const productBrandName = product.title.split(" ")[0] || "n/a"
-
   return (
     <div id="product-info">
+      {/* Brand Details JSON Display */}
+      {brand && brand.image_url && (
+        <LocalizedClientLink
+          href={`/brands/${brand.slug}`}
+          className="flex items-center justify-start gap-2"
+        >
+          <p className="text-sm font-bold ">Brand :</p>
+          <Image
+            src={brand.image_url ?? ""}
+            alt={brand.name}
+            width={30}
+            height={30}
+          />
+        </LocalizedClientLink>
+      )}
+
       <div className="flex flex-col gap-y-3">
-        {product.collection && (
-          <LocalizedClientLink
-            href={`/collections/${product.collection.handle}`}
-            className="text-medium text-ui-fg-muted hover:text-ui-fg-subtle"
-          >
-            {product.collection.title}
-          </LocalizedClientLink>
-        )}
-        {/* <p className="text-sm font-medium text-ui-fg-muted uppercase tracking-wide">
-          <b>Brand: </b> {productBrandName}
-        </p> */}
         <Heading
           level="h2"
           className="text-3xl  font-bold leading-10 text-ui-fg-base pr-5 font-urbanist"
@@ -78,6 +84,10 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
             {isInStock ? "In Stock" : "Out of Stock"}
           </p>
         </div>
+
+        <p className="text-sm font-medium">
+          Item No : {(product?.metadata?.item_no as string) ?? "N/A"}
+        </p>
       </div>
     </div>
   )

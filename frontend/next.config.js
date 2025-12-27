@@ -12,7 +12,7 @@ const S3_PATHNAME = process.env.MEDUSA_CLOUD_S3_PATHNAME
  * @type {import('next').NextConfig}
  */
 const nextConfig = {
-  output: 'standalone',
+  output: "standalone",
   reactStrictMode: true,
   logging: {
     fetches: {
@@ -30,6 +30,10 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "www.occhialando.eu",
       },
       {
         protocol: "https",
