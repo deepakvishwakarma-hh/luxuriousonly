@@ -102,3 +102,20 @@ export const getBrandProductsBySlug = async (slug: string) => {
         }))
 }
 
+export const getBrandsByProductId = async (productId: string) => {
+    const next = {
+        ...(await getCacheOptions("brands")),
+    }
+
+    return sdk.client
+        .fetch<{ product_id: string; brands: Brand[] }>(
+            `/store/products/${productId}/brands`,
+            {
+                next,
+                cache: "force-cache",
+            }
+        )
+        .then(({ brands }) => brands?.[0] || null)
+        .catch(() => null)
+}
+

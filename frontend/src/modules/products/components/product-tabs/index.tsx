@@ -2,12 +2,23 @@
 
 import Accordion from "./accordion"
 import { HttpTypes } from "@medusajs/types"
+import RecentlyViewedProducts from "../recently-viewed-products"
 
 type ProductTabsProps = {
   product: HttpTypes.StoreProduct
+  countryCode: string
+  region: HttpTypes.StoreRegion
 }
 
-const ProductTabs = ({ product }: ProductTabsProps) => {
+type ProductTabProps = {
+  product: HttpTypes.StoreProduct
+}
+
+const ProductTabs = ({
+  product,
+  countryCode,
+  region,
+}: ProductTabsProps) => {
   const tabs = [
     {
       label: "Product Details",
@@ -17,6 +28,16 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
     {
       label: "Product Description",
       component: <ProductDescriptionTab product={product} />,
+    },
+    {
+      label: "Recently Viewed Products",
+      component: (
+        <RecentlyViewedProducts
+          currentProductId={product.id}
+          countryCode={countryCode}
+          region={region}
+        />
+      ),
     },
   ]
 
@@ -38,7 +59,7 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
   )
 }
 
-const ProductInfoTab = ({ product }: ProductTabsProps) => {
+const ProductInfoTab = ({ product }: ProductTabProps) => {
   // Helper function to format metadata keys (snake_case to Title Case)
   const formatKey = (key: string): string => {
     return key
@@ -80,7 +101,7 @@ const ProductInfoTab = ({ product }: ProductTabsProps) => {
     </div>
   )
 }
-const ProductDescriptionTab = ({ product }: ProductTabsProps) => {
+const ProductDescriptionTab = ({ product }: ProductTabProps) => {
   return (
     <div className="text-sm text-gray-700 py-8">
       <p>{product.description}</p>

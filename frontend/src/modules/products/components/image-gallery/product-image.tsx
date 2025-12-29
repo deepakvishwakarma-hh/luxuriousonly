@@ -52,102 +52,101 @@ const ProductImageCarousel = ({
     alt: `${productTitle} - View ${idx + 1}`,
   }))
 
-return (
-  <div className="grid grid-cols-1 md:grid-cols-[100px_calc(100%-100px)] gap-4">
-    {/* Thumbnails */}
-    {images.length > 1 && (
-      <div className="order-2 md:order-1">
-        <div
-          className="
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-[100px_calc(100%-100px)] gap-4">
+      {/* Thumbnails */}
+      {images.length > 1 && (
+        <div className="order-2 md:order-1">
+          <div
+            className="
             flex md:flex-col gap-2
             overflow-x-auto md:overflow-y-auto
             scrollbar-hide
           "
-        >
-          {images.map((image, index) => (
-            <div
-              key={index}
-              className={`
+          >
+            {images.map((image, index) => (
+              <div
+                key={index}
+                className={`
                 relative cursor-pointer flex-shrink-0
                 bg-neutral-100 rounded-lg overflow-hidden
                 border-2
-                ${activeImage === index ? "border-[#d4af37]" : "border-transparent"}
+                ${activeImage === index ? "border-black" : "border-transparent"}
               `}
-              style={{
-                width: "80px",
-                height: "80px",
-              }}
-              onClick={() => {
-                swiperRef.current?.slideTo(index)
-                setActiveImage(index)
-              }}
-            >
-              <Image
-                src={image}
-                alt={`${productTitle} - View ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            </div>
-          ))}
+                style={{
+                  width: "80px",
+                  height: "80px",
+                }}
+                onClick={() => {
+                  swiperRef.current?.slideTo(index)
+                  setActiveImage(index)
+                }}
+              >
+                <Image
+                  src={image}
+                  alt={`${productTitle} - View ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Main Image */}
-    <div className="order-1 md:order-2 relative aspect-square w-full rounded bg-white">
-      <Swiper
-        spaceBetween={0}
-        modules={[Thumbs]}
-        className="h-full product-image-carousel"
-        onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
-        onSwiper={(swiper) => (swiperRef.current = swiper)}
-      >
-        {images.map((image, index) => (
-          <SwiperSlide key={index}>
-            <div className="relative w-full h-full">
-              <Image
-                src={image}
-                alt={`${productTitle} - View ${index + 1}`}
-                fill
-                className="object-contain"
-                priority={index === 0}
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+      {/* Main Image */}
+      <div className="order-1 md:order-2 relative aspect-square w-full rounded bg-white">
+        <Swiper
+          spaceBetween={0}
+          modules={[Thumbs]}
+          className="h-full product-image-carousel"
+          onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
+          onSwiper={(swiper) => (swiperRef.current = swiper)}
+        >
+          {images.map((image, index) => (
+            <SwiperSlide key={index}>
+              <div className="relative w-full h-full">
+                <Image
+                  src={image}
+                  alt={`${productTitle} - View ${index + 1}`}
+                  fill
+                  className="object-contain"
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
-      {/* Enlarge Button */}
-      <button
-        className="
+        {/* Enlarge Button */}
+        <button
+          className="
           absolute top-2 left-2 z-30
           w-9 h-9 md:w-10 md:h-10
           flex items-center justify-center
           rounded-full border-2 border-black
           bg-white/80 backdrop-blur
         "
-        onClick={() => setLightboxOpen(true)}
-        aria-label="Enlarge image"
-      >
-        <BsArrowsFullscreen />
-      </button>
+          onClick={() => setLightboxOpen(true)}
+          aria-label="Enlarge image"
+        >
+          <BsArrowsFullscreen />
+        </button>
+      </div>
+
+      {/* Lightbox */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        slides={lightboxSlides}
+        index={activeImage}
+        plugins={[Fullscreen, Slideshow, Thumbnails, Zoom, Captions]}
+        on={{ view: ({ index }) => setActiveImage(index) }}
+      />
     </div>
-
-    {/* Lightbox */}
-    <Lightbox
-      open={lightboxOpen}
-      close={() => setLightboxOpen(false)}
-      slides={lightboxSlides}
-      index={activeImage}
-      plugins={[Fullscreen, Slideshow, Thumbnails, Zoom, Captions]}
-      on={{ view: ({ index }) => setActiveImage(index) }}
-    />
-  </div>
-)
-
+  )
 }
 
 export default ProductImageCarousel
