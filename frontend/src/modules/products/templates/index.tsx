@@ -77,7 +77,11 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </div>
           {/* right side  */}
           <div className="w-full md:w-1/2 ">
-            <ProductInfo product={product} brand={brand} reviewSummary={reviewSummary} />
+            <ProductInfo
+              product={product}
+              brand={brand}
+              reviewSummary={reviewSummary}
+            />
             <Suspense
               fallback={
                 <ProductActions
@@ -106,7 +110,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
         <ProductReviews productId={product.id} />
       </div>
       <div
-        className="content-container "
+        className="content-container"
         data-testid="related-products-container"
       >
         <Suspense fallback={<SkeletonRelatedProducts />}>

@@ -70,7 +70,7 @@ const ProductImageCarousel = ({
                 className={`
                 relative cursor-pointer flex-shrink-0
                 bg-neutral-100 rounded-lg overflow-hidden
-                border-2
+                border-2 transition-colors
                 ${activeImage === index ? "border-black" : "border-transparent"}
               `}
                 style={{
@@ -78,6 +78,10 @@ const ProductImageCarousel = ({
                   height: "80px",
                 }}
                 onClick={() => {
+                  swiperRef.current?.slideTo(index)
+                  setActiveImage(index)
+                }}
+                onMouseEnter={() => {
                   swiperRef.current?.slideTo(index)
                   setActiveImage(index)
                 }}
