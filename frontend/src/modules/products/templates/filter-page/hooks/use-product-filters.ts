@@ -64,12 +64,10 @@ export function useProductFilters(
     queryParams.set("offset", String((filters.page - 1) * 20))
     queryParams.set("include_filter_options", "true")
 
-    const backendUrl =
-      typeof window !== "undefined"
-        ? window.location.origin.includes("localhost")
-          ? "http://localhost:9000"
-          : window.location.origin.replace(/:\d+$/, ":9000")
-        : process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const backendUrl = process.env.MEDUSA_BACKEND_URL
+    if (!backendUrl) {
+      return null
+    }
 
     return `${backendUrl}/store/products/filter?${queryParams.toString()}`
   }, [filters])

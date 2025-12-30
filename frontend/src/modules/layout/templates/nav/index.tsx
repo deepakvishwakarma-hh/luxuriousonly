@@ -19,69 +19,70 @@ export default function Nav() {
     <div className="sticky top-0 inset-x-0 z-50 bg-white border-b border-ui-border-base">
       {/* ================= HEADER ================= */}
       <header className="h-16 md:h-20">
-       <nav className="relative px-4 md:px-10 flex items-center justify-between w-full h-full">
-  
-  {/* ================= LEFT ================= */}
-  <div className="flex items-center gap-3">
-    {/* Hamburger (mobile only) */}
-    <button
-      className="md:hidden"
-      onClick={() => setMenuOpen(true)}
-      aria-label="Open Menu"
-    >
-      <HiOutlineMenu size={24} />
-    </button>
+        <nav className="relative px-4 md:px-10 flex items-center justify-between w-full h-full">
+          {/* ================= LEFT ================= */}
+          <div className="flex items-center gap-3">
+            {/* Hamburger (mobile only) */}
+            <button
+              className="md:hidden"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open Menu"
+            >
+              <HiOutlineMenu size={24} />
+            </button>
 
-    {/* Logo (DESKTOP ONLY → LEFT SIDE) */}
-    <LocalizedClientLink href="/" className="hidden md:flex items-center">
-      <Image
-        src="/logo.avif"
-        alt="Luxurious Mart"
-        width={205}
-        height={66}
-        className="object-contain"
-      />
-    </LocalizedClientLink>
-  </div>
+            {/* Logo (DESKTOP ONLY → LEFT SIDE) */}
+            <LocalizedClientLink
+              href="/"
+              className="hidden md:flex items-center"
+            >
+              <Image
+                src="/logo.avif"
+                alt="Luxurious Mart"
+                width={205}
+                height={66}
+                className="object-contain"
+              />
+            </LocalizedClientLink>
+          </div>
 
-      {/* ================= MOBILE CENTER LOGO ================= */}
-      <LocalizedClientLink
-        href="/"
-        className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center"
-      >
-        <Image
-          src="/logo.avif"
-          alt="Luxurious Mart"
-          width={160}
-          height={50}
-          className="object-contain"
-        />
-      </LocalizedClientLink>
+          {/* ================= MOBILE CENTER LOGO ================= */}
+          <LocalizedClientLink
+            href="/"
+            className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center"
+          >
+            <Image
+              src="/logo.avif"
+              alt="Luxurious Mart"
+              width={160}
+              height={50}
+              className="object-contain"
+            />
+          </LocalizedClientLink>
 
-      {/* ================= CENTER (Desktop Search) ================= */}
-      <div className="hidden md:flex flex-1 justify-center px-10">
-        <NavSearch />
-      </div>
+          {/* ================= CENTER (Desktop Search) ================= */}
+          <div className="hidden md:flex flex-1 justify-center px-10">
+            <NavSearch />
+          </div>
 
-      {/* ================= RIGHT ================= */}
-      <div className="flex items-center gap-x-3 md:gap-x-6">
-        {/* Account ONLY on desktop */}
-        <div className="hidden md:block">
-          <AccountDropdown customer={customer} isLoading={isLoading} />
-        </div>
+          {/* ================= RIGHT ================= */}
+          <div className="flex items-center gap-x-3 md:gap-x-6">
+            {/* Account ONLY on desktop */}
+            <div className="hidden md:block">
+              <AccountDropdown customer={customer} isLoading={isLoading} />
+            </div>
 
-        <div className="hidden sm:block">
-          <CompareButton />
-        </div>
+            <div className="hidden sm:block">
+              <CompareButton />
+            </div>
 
-        <LikedButton />
+            <LikedButton />
 
-        <Suspense fallback={<span className="text-sm">Cart (0)</span>}>
-          <CartButton />
-        </Suspense>
-      </div>
-    </nav>
-
+            <Suspense fallback={<span className="text-sm">Cart (0)</span>}>
+              <CartButton />
+            </Suspense>
+          </div>
+        </nav>
       </header>
 
       {/* Mobile Search */}
@@ -93,7 +94,6 @@ export default function Nav() {
       {menuOpen && (
         <div className="fixed inset-0 z-50 bg-black/40">
           <div className="absolute left-0 top-0 h-full w-[80%] max-w-sm bg-white p-5 shadow-lg">
-            
             {/* Close */}
             <button className="mb-6" onClick={() => setMenuOpen(false)}>
               <HiX size={24} />
@@ -110,19 +110,31 @@ export default function Nav() {
                 Home
               </LocalizedClientLink>
 
-              <LocalizedClientLink href="/store" onClick={() => setMenuOpen(false)}>
+              <LocalizedClientLink
+                href="/store"
+                onClick={() => setMenuOpen(false)}
+              >
                 Shop
               </LocalizedClientLink>
 
-              <LocalizedClientLink href="/collections" onClick={() => setMenuOpen(false)}>
+              <LocalizedClientLink
+                href="/collections"
+                onClick={() => setMenuOpen(false)}
+              >
                 Collections
               </LocalizedClientLink>
 
-              <LocalizedClientLink href="/about" onClick={() => setMenuOpen(false)}>
+              <LocalizedClientLink
+                href="/about"
+                onClick={() => setMenuOpen(false)}
+              >
                 About Us
               </LocalizedClientLink>
 
-              <LocalizedClientLink href="/contact" onClick={() => setMenuOpen(false)}>
+              <LocalizedClientLink
+                href="/contact"
+                onClick={() => setMenuOpen(false)}
+              >
                 Contact
               </LocalizedClientLink>
             </div>

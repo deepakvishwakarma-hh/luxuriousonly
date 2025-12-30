@@ -60,7 +60,7 @@ export default function NavSearch() {
   const searchApiUrl =
     query.trim().length >= 2
       ? (() => {
-          const backendUrl = process.env.PUBLIC_MEDUSA_BACKEND_URL
+          const backendUrl = process.env.MEDUSA_BACKEND_URL
           if (!backendUrl) {
             return null
           }

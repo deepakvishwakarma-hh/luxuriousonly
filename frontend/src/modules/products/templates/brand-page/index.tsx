@@ -89,7 +89,10 @@ function ProductPreviewClient({
           <div className="flex items-center justify-center gap-x-2">
             {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
           </div>
-          <AddToCartButton product={formattedProduct} countryCode={countryCode} />
+          <AddToCartButton
+            product={formattedProduct}
+            countryCode={countryCode}
+          />
         </div>
       </div>
     </LocalizedClientLink>
@@ -142,7 +145,7 @@ export default function BrandPage({
   const filters = useMemo(() => {
     const pageParam = searchParams.get("page")
     const page = pageParam ? parseInt(pageParam) : 1
-    
+
     return {
       category: searchParams.get("category") || "",
       rimStyle: searchParams.getAll("rim_style"),
@@ -174,12 +177,11 @@ export default function BrandPage({
     queryParams.set("offset", String((filters.page - 1) * 20))
     queryParams.set("include_filter_options", "true")
 
-    const backendUrl = typeof window !== "undefined" 
-      ? (window.location.origin.includes("localhost") 
-          ? "http://localhost:9000" 
-          : window.location.origin.replace(/:\d+$/, ":9000"))
-      : process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
-    
+    const backendUrl = process.env.MEDUSA_BACKEND_URL
+    if (!backendUrl) {
+      return null
+    }
+
     return `${backendUrl}/store/products/filter?${queryParams.toString()}`
   }, [filters, brandSlug])
 
@@ -203,14 +205,18 @@ export default function BrandPage({
   // Update URL with filters
   const updateFilters = (updates: Record<string, string | string[] | null>) => {
     const params = new URLSearchParams(searchParams.toString())
-    
+
     // Reset to first page when filters change (except when updating page itself)
     if (!updates.page) {
       params.delete("page")
     }
 
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
+      if (
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
         params.delete(key)
       } else if (Array.isArray(value)) {
         params.delete(key)
@@ -246,12 +252,11 @@ export default function BrandPage({
   return (
     <div className="content-container py-8">
       {/* Brand Header */}
-     {(brandName || brandImage || brandDescription) && (
-  <div className="mb-8 pb-8 border-b">
-    <div className="flex flex-col items-center gap-6">
-      
-      {/* Brand Image (optional) */}
-      {/* {brandImage && (
+      {(brandName || brandImage || brandDescription) && (
+        <div className="mb-8 pb-8 border-b">
+          <div className="flex flex-col items-center gap-6">
+            {/* Brand Image (optional) */}
+            {/* {brandImage && (
         <img
           src={brandImage}
           alt={brandName || "Brand"}
@@ -259,28 +264,26 @@ export default function BrandPage({
         />
       )} */}
 
-      <div className="text-center">
-        {brandName && (
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">
-            {brandName}
-          </h1>
-        )}
+            <div className="text-center">
+              {brandName && (
+                <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                  {brandName}
+                </h1>
+              )}
 
-        {brandDescription && (
-          <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
-            {brandDescription}
-          </p>
-        )}
+              {brandDescription && (
+                <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
+                  {brandDescription}
+                </p>
+              )}
 
-        <p className="text-sm text-gray-500">
-          {count} {count === 1 ? "product" : "products"}
-        </p>
-      </div>
-
-    </div>
-  </div>
-)}
-
+              <p className="text-sm text-gray-500">
+                {count} {count === 1 ? "product" : "products"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar Filters */}
@@ -297,23 +300,28 @@ export default function BrandPage({
             </div>
 
             {/* Category Filter */}
-            {filterOptions?.categories && filterOptions.categories.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => updateFilters({ category: e.target.value || null })}
-                  className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
-                >
-                  <option value="">All Categories</option>
-                  {filterOptions.categories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {filterOptions?.categories &&
+              filterOptions.categories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={filters.category}
+                    onChange={(e) =>
+                      updateFilters({ category: e.target.value || null })
+                    }
+                    className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
+                  >
+                    <option value="">All Categories</option>
+                    {filterOptions.categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
             {/* Gender Filter */}
             {filterOptions?.genders && filterOptions.genders.length > 0 && (
@@ -325,7 +333,9 @@ export default function BrandPage({
                       <input
                         type="checkbox"
                         checked={filters.gender.includes(gender)}
-                        onChange={() => handleFilterChange("gender", gender, true)}
+                        onChange={() =>
+                          handleFilterChange("gender", gender, true)
+                        }
                         className="mr-2"
                       />
                       <span className="text-sm">{gender}</span>
@@ -336,24 +346,29 @@ export default function BrandPage({
             )}
 
             {/* Rim Style Filter */}
-            {filterOptions?.rim_styles && filterOptions.rim_styles.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Rim Style</label>
-                <div className="space-y-2">
-                  {filterOptions.rim_styles.map((style) => (
-                    <label key={style} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.rimStyle.includes(style)}
-                        onChange={() => handleFilterChange("rim_style", style, true)}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{style}</span>
-                    </label>
-                  ))}
+            {filterOptions?.rim_styles &&
+              filterOptions.rim_styles.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Rim Style
+                  </label>
+                  <div className="space-y-2">
+                    {filterOptions.rim_styles.map((style) => (
+                      <label key={style} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.rimStyle.includes(style)}
+                          onChange={() =>
+                            handleFilterChange("rim_style", style, true)
+                          }
+                          className="mr-2"
+                        />
+                        <span className="text-sm">{style}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Shapes Filter */}
             {filterOptions?.shapes && filterOptions.shapes.length > 0 && (
@@ -365,7 +380,9 @@ export default function BrandPage({
                       <input
                         type="checkbox"
                         checked={filters.shapes.includes(shape)}
-                        onChange={() => handleFilterChange("shapes", shape, true)}
+                        onChange={() =>
+                          handleFilterChange("shapes", shape, true)
+                        }
                         className="mr-2"
                       />
                       <span className="text-sm">{shape}</span>
@@ -397,19 +414,25 @@ export default function BrandPage({
 
             {/* Price Range */}
             <div>
-              <label className="block text-sm font-medium mb-2">Price Range</label>
+              <label className="block text-sm font-medium mb-2">
+                Price Range
+              </label>
               <div className="flex gap-2">
                 <input
                   type="number"
                   value={filters.minPrice || ""}
-                  onChange={(e) => updateFilters({ min_price: e.target.value || null })}
+                  onChange={(e) =>
+                    updateFilters({ min_price: e.target.value || null })
+                  }
                   placeholder="Min"
                   className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
                 />
                 <input
                   type="number"
                   value={filters.maxPrice || ""}
-                  onChange={(e) => updateFilters({ max_price: e.target.value || null })}
+                  onChange={(e) =>
+                    updateFilters({ max_price: e.target.value || null })
+                  }
                   placeholder="Max"
                   className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
                 />
@@ -450,7 +473,9 @@ export default function BrandPage({
           {/* Products Grid */}
           {error ? (
             <div className="text-center py-12">
-              <p className="text-ui-fg-destructive">Error loading products. Please try again.</p>
+              <p className="text-ui-fg-destructive">
+                Error loading products. Please try again.
+              </p>
               <button
                 onClick={() => mutate()}
                 className="mt-4 px-4 py-2 bg-ui-bg-interactive text-ui-fg-on-interactive rounded-md hover:bg-ui-bg-interactive-hover"
@@ -483,7 +508,9 @@ export default function BrandPage({
           {count > 20 && (
             <div className="flex justify-center gap-2 mt-8">
               <button
-                onClick={() => updateFilters({ page: String(Math.max(1, filters.page - 1)) })}
+                onClick={() =>
+                  updateFilters({ page: String(Math.max(1, filters.page - 1)) })
+                }
                 disabled={filters.page === 1}
                 className="px-4 py-2 border border-ui-border-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ui-bg-subtle-hover"
               >
@@ -493,7 +520,9 @@ export default function BrandPage({
                 Page {filters.page} of {Math.ceil(count / 20)}
               </span>
               <button
-                onClick={() => updateFilters({ page: String(filters.page + 1) })}
+                onClick={() =>
+                  updateFilters({ page: String(filters.page + 1) })
+                }
                 disabled={filters.page >= Math.ceil(count / 20)}
                 className="px-4 py-2 border border-ui-border-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ui-bg-subtle-hover"
               >
@@ -506,4 +535,3 @@ export default function BrandPage({
     </div>
   )
 }
-
