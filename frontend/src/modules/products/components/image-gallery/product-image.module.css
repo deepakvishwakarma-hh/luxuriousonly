@@ -1,0 +1,49 @@
+/* Custom Swiper Navigation Styles */
+.productImageCarousel :global(.swiper-button-next),
+.productImageCarousel :global(.swiper-button-prev) {
+  background-color: rgba(0, 0, 0, 0.5);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.productImageCarousel :global(.swiper-button-next:hover),
+.productImageCarousel :global(.swiper-button-prev:hover) {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.productImageCarousel :global(.swiper-button-next::after),
+.productImageCarousel :global(.swiper-button-prev::after) {
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.productImageCarousel :global(.swiper-button-next) {
+  right: 12px;
+}
+
+.productImageCarousel :global(.swiper-button-prev) {
+  left: 12px;
+}
+
+/* Hide default pagination dots if needed */
+.productImageCarousel :global(.swiper-pagination) {
+  bottom: 12px;
+}
+
+.productImageCarousel :global(.swiper-pagination-bullet) {
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0.5;
+}
+
+.productImageCarousel :global(.swiper-pagination-bullet-active) {
+  background-color: rgba(0, 0, 0, 0.9);
+  opacity: 1;
+}

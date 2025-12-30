@@ -4,7 +4,7 @@ import Image from "next/image"
 import { useState, useRef } from "react"
 import { Swiper, SwiperSlide } from "swiper/react"
 import type { Swiper as SwiperType } from "swiper"
-import { Thumbs } from "swiper/modules"
+import { Navigation, Pagination } from "swiper/modules"
 import Lightbox from "yet-another-react-lightbox"
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen"
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow"
@@ -14,8 +14,10 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom"
 import "yet-another-react-lightbox/styles.css"
 
 import "swiper/css"
-import "swiper/css/thumbs"
+import "swiper/css/navigation"
+import "swiper/css/pagination"
 import { BsArrowsFullscreen } from "react-icons/bs"
+import styles from "./product-image.module.css"
 
 interface ProductImageCarouselProps {
   images: string[]
@@ -53,54 +55,15 @@ const ProductImageCarousel = ({
   }))
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[100px_calc(100%-100px)] gap-4">
-      {/* Thumbnails */}
-      {images.length > 1 && (
-        <div className="order-2 md:order-1">
-          <div
-            className="
-            flex md:flex-col gap-2
-            overflow-x-auto md:overflow-y-auto
-            scrollbar-hide
-          "
-          >
-            {images.map((image, index) => (
-              <div
-                key={index}
-                className={`
-                relative cursor-pointer flex-shrink-0
-                bg-neutral-100 rounded-lg overflow-hidden
-                border-2
-                ${activeImage === index ? "border-black" : "border-transparent"}
-              `}
-                style={{
-                  width: "80px",
-                  height: "80px",
-                }}
-                onClick={() => {
-                  swiperRef.current?.slideTo(index)
-                  setActiveImage(index)
-                }}
-              >
-                <Image
-                  src={image}
-                  alt={`${productTitle} - View ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="80px"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main Image */}
-      <div className="order-1 md:order-2 relative aspect-square w-full rounded bg-white">
+    <div className="w-full">
+      {/* Main Image (carousel) */}
+      <div className="relative aspect-square w-full rounded bg-white">
         <Swiper
           spaceBetween={0}
-          modules={[Thumbs]}
-          className="h-full product-image-carousel"
+          modules={[Navigation, Pagination]}
+          navigation
+          pagination={{ clickable: true }}
+          className={`h-full ${styles.productImageCarousel}`}
           onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
           onSwiper={(swiper) => (swiperRef.current = swiper)}
         >

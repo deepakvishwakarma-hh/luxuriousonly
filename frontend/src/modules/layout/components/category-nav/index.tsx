@@ -81,32 +81,33 @@ export default function CategoryNav({
 
   return (
     <>
-      <nav className="bg-[#e5e5e5]  relative">
-        <div className="px-10">
-          <div className="flex items-center justify-center gap-8-- h-12">
-            {navItems.map((item) => {
-              return (
-                <div
-                  key={item.label}
-                  className="relative"
-                  // onMouseEnter={() => setOpenDropdown(item.label)}
-                  // onMouseLeave={() => setOpenDropdown(null)}
-                >
-                  <button className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 uppercase focus:outline-none text-[13px] border-r border-gray-300 px-4">
-                    {item.label}
-                    <ChevronDown
-                      className={`transform transition-transform ${
-                        openDropdown === item.label ? "rotate-180" : ""
-                      }`}
-                      size={14}
-                    />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+<nav className="bg-[#e5e5e5] relative">
+  <div className="px-2 sm:px-6 md:px-10">
+    <div className="flex items-center justify-center h-12 overflow-x-auto">
+      {navItems.map((item) => (
+        <div key={item.label} className="relative flex-shrink-0">
+          <button
+            className="
+              flex items-center gap-1
+              text-[10px] sm:text-[11px] md:text-[13px] lg:text-sm
+              font-bold uppercase
+              text-gray-700 hover:text-gray-900
+              focus:outline-none
+              border-r border-gray-300 last:border-r-0
+              px-2 sm:px-3 md:px-4
+              whitespace-nowrap
+            "
+          >
+            {item.label}
+
+            <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
+          </button>
         </div>
-      </nav>
+      ))}
+    </div>
+  </div>
+</nav>
+
       {/* Full-width dropdown overlay */}
       {openDropdown && (
         <Transition

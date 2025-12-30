@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { HttpTypes } from "@medusajs/types"
 import { FilterProductsResponse } from "@lib/data/products"
 import LoadingOverlay from "./components/loading-overlay"
@@ -60,27 +60,83 @@ export default function FilterPage({
 
   const totalPages = Math.ceil(count / 20)
 
+  useEffect(() => {
+    if (typeof document === "undefined") return
+    if (showMobileFilters) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [showMobileFilters])
+
   return (
     <div className="relative">
       <LoadingOverlay isLoading={isLoading} />
       <SearchQueryIndicator searchQuery={filters.search} />
       <div className="content-container py-4 sm:py-6 md:py-8">
-        {/* Mobile Filter Toggle */}
-        <div className="lg:hidden mb-4 flex items-center gap-2">
-          <button
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
+        {/* Mobile hamburger moved into SortControls for proper placement with sorting */}
+
+        {/* Mobile Drawer */}
+        {showMobileFilters && (
+          <div
+            id="mobile-filter-drawer"
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-60 lg:hidden"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            {showMobileFilters ? "Hide Filters" : "Show Filters"}
-          </button>
-        </div>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-40"
+              onClick={() => setShowMobileFilters(false)}
+            />
+
+            <div className={`fixed top-0 left-0 h-full w-80 max-w-[85%] z-70 bg-white shadow-xl transform transition-transform`}>
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 className="text-base font-bold">Filters</h2>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  aria-label="Close filters"
+                  className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="h-full overflow-auto">
+                <FilterSidebar
+                  filters={{
+                    brand: filters.brand,
+                    category: filters.category,
+                    rimStyle: filters.rimStyle,
+                    gender: filters.gender,
+                    shapes: filters.shapes,
+                    size: filters.size,
+                    minPrice: filters.minPrice || undefined,
+                    maxPrice: filters.maxPrice || undefined,
+                  }}
+                  filterOptions={filterOptions}
+                  priceRange={priceRange}
+                  priceValues={priceValues}
+                  onPriceChange={handlePriceChange}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={() => {
+                    clearFilters()
+                    setShowMobileFilters(false)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 md:gap-8 lg:gap-10">
           {/* Sidebar - Hidden on mobile by default */}
-          <div className={`${showMobileFilters ? "block" : "hidden"} lg:block lg:w-72 flex-shrink-0`}>
+          <div className="hidden lg:block lg:w-72 flex-shrink-0">
             <FilterSidebar
               filters={{
                 brand: filters.brand,
@@ -109,6 +165,7 @@ export default function FilterPage({
               order={filters.order}
               orderDirection={filters.orderDirection}
               onSortChange={handleSortChange}
+              onOpenFilters={() => setShowMobileFilters(true)}
             />
             <ProductGrid
               products={products}

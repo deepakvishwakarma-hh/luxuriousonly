@@ -246,30 +246,41 @@ export default function BrandPage({
   return (
     <div className="content-container py-8">
       {/* Brand Header */}
-      {(brandName || brandImage || brandDescription) && (
-        <div className="mb-8 pb-8 border-b">
-          <div className="flex items-start gap-6">
-            {brandImage && (
-              <img
-                src={brandImage}
-                alt={brandName || "Brand"}
-                className="w-32 h-32 object-contain rounded-lg border"
-              />
-            )}
-            <div>
-              {brandName && (
-                <h1 className="text-3xl font-bold mb-2">{brandName}</h1>
-              )}
-              {brandDescription && (
-                <p className="text-gray-600 mb-4">{brandDescription}</p>
-              )}
-              <p className="text-sm text-gray-500">
-                {count} {count === 1 ? "product" : "products"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+     {(brandName || brandImage || brandDescription) && (
+  <div className="mb-8 pb-8 border-b">
+    <div className="flex flex-col items-center gap-6">
+      
+      {/* Brand Image (optional) */}
+      {/* {brandImage && (
+        <img
+          src={brandImage}
+          alt={brandName || "Brand"}
+          className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-lg border"
+        />
+      )} */}
+
+      <div className="text-center">
+        {brandName && (
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+            {brandName}
+          </h1>
+        )}
+
+        {brandDescription && (
+          <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
+            {brandDescription}
+          </p>
+        )}
+
+        <p className="text-sm text-gray-500">
+          {count} {count === 1 ? "product" : "products"}
+        </p>
+      </div>
+
+    </div>
+  </div>
+)}
+
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar Filters */}

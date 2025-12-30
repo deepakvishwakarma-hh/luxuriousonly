@@ -62,7 +62,7 @@ const ProductInfo = ({ product, brand }: ProductInfoProps) => {
       <div className="flex flex-col gap-y-3">
         <Heading
           level="h2"
-          className="text-3xl  font-bold leading-10 text-ui-fg-base pr-5 font-urbanist"
+          className="text-lg sm:text-2xl md:text-3xl font-bold leading-tight sm:leading-9 md:leading-10 text-ui-fg-base pr-2 sm:pr-5 font-urbanist break-words"
           data-testid="product-title"
         >
           {product.title}
