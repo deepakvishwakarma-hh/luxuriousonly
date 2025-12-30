@@ -33,7 +33,7 @@ export default async function ProductPreview({
   })
 
   return (
-    <LocalizedClientLink href={`/products/${product.handle}`} className="group">
+    <LocalizedClientLink href={`/products/${product.handle}`} className="group" target="_blank">
       <div
         data-testid="product-wrapper"
         className="shadow-elevation-card-rest rounded-large group-hover:shadow-elevation-card-hover transition-shadow ease-in-out duration-150 overflow-hidden relative"

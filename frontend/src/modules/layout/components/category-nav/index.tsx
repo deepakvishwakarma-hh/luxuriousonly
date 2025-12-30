@@ -81,7 +81,7 @@ export default function CategoryNav({
 
   return (
     <>
-<nav className="bg-[#e5e5e5] relative">
+<nav className="hidden md:block bg-[#e5e5e5] relative">
   <div className="px-2 sm:px-6 md:px-10">
     <div className="flex items-center justify-center h-12 overflow-x-auto">
       {navItems.map((item) => (
@@ -99,7 +99,6 @@ export default function CategoryNav({
             "
           >
             {item.label}
-
             <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
           </button>
         </div>
@@ -107,6 +106,7 @@ export default function CategoryNav({
     </div>
   </div>
 </nav>
+
 
       {/* Full-width dropdown overlay */}
       {openDropdown && (

@@ -66,7 +66,8 @@ const BrandsPage = () => {
               alt={row.original.name}
               className="w-full h-full object-cover rounded border"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
+                (e.
+                  as HTMLImageElement).style.display = "none";
               }}
             />
           </div>

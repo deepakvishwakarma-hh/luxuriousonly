@@ -186,6 +186,7 @@ export default function RecentlyViewedProducts({
               <LocalizedClientLink
                 href={`/products/${product.handle}`}
                 className="group block"
+                target="_blank"
               >
                 <div
                   data-testid="product-wrapper"

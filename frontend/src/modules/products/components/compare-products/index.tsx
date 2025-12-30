@@ -51,6 +51,7 @@ export default function CompareProducts({ products }: CompareProductsProps) {
                 <LocalizedClientLink
                   href={`/products/${product.handle}`}
                   className="block hover:opacity-80 transition-opacity"
+                  target="_blank"
                 >
                   {product.thumbnail ? (
                     <div className="relative w-full aspect-square mb-4">
@@ -83,6 +84,7 @@ export default function CompareProducts({ products }: CompareProductsProps) {
                 <LocalizedClientLink
                   href={`/products/${product.handle}`}
                   className="text-ui-fg-base hover:text-ui-fg-interactive font-medium"
+                  target="_blank"
                 >
                   {product.title}
                 </LocalizedClientLink>
