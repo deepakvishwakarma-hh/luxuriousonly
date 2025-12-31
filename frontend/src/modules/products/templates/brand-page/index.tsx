@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useMemo, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { FilterProductsResponse } from "@lib/data/products"
@@ -140,6 +140,7 @@ export default function BrandPage({
 }: BrandPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Memoize filter values to prevent unnecessary re-renders
   const filters = useMemo(() => {
@@ -202,6 +203,19 @@ export default function BrandPage({
   const filterOptions = data?.filter_options
   const loading = isLoading
 
+  useEffect(() => {
+    if (typeof document === "undefined") return
+    if (showMobileFilters) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [showMobileFilters])
+
   // Update URL with filters
   const updateFilters = (updates: Record<string, string | string[] | null>) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -249,6 +263,143 @@ export default function BrandPage({
     router.push("?")
   }
 
+  const BrandFilterSidebar = () => (
+    <div className="sticky top-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Filters</h2>
+        <button
+          onClick={clearFilters}
+          className="text-sm text-ui-fg-subtle hover:text-ui-fg-base"
+        >
+          Clear All
+        </button>
+      </div>
+
+      {/* Category Filter */}
+      {filterOptions?.categories &&
+        filterOptions.categories.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Category</label>
+            <select
+              value={filters.category}
+              onChange={(e) =>
+                updateFilters({ category: e.target.value || null })
+              }
+              className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
+            >
+              <option value="">All Categories</option>
+              {filterOptions.categories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+      {/* Gender Filter */}
+      {filterOptions?.genders && filterOptions.genders.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Gender</label>
+          <div className="space-y-2">
+            {filterOptions.genders.map((gender) => (
+              <label key={gender} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.gender.includes(gender)}
+                  onChange={() => handleFilterChange("gender", gender, true)}
+                  className="mr-2"
+                />
+                <span className="text-sm">{gender}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rim Style Filter */}
+      {filterOptions?.rim_styles && filterOptions.rim_styles.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Rim Style</label>
+          <div className="space-y-2">
+            {filterOptions.rim_styles.map((style) => (
+              <label key={style} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.rimStyle.includes(style)}
+                  onChange={() => handleFilterChange("rim_style", style, true)}
+                  className="mr-2"
+                />
+                <span className="text-sm">{style}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Shapes Filter */}
+      {filterOptions?.shapes && filterOptions.shapes.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Shapes</label>
+          <div className="space-y-2">
+            {filterOptions.shapes.map((shape) => (
+              <label key={shape} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.shapes.includes(shape)}
+                  onChange={() => handleFilterChange("shapes", shape, true)}
+                  className="mr-2"
+                />
+                <span className="text-sm">{shape}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Size Filter */}
+      {filterOptions?.sizes && filterOptions.sizes.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Size</label>
+          <div className="space-y-2">
+            {filterOptions.sizes.map((size) => (
+              <label key={size} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.size.includes(size)}
+                  onChange={() => handleFilterChange("size", size, true)}
+                  className="mr-2"
+                />
+                <span className="text-sm">{size}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Price Range */}
+      <div>
+        <label className="block text-sm font-medium mb-2">Price Range</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={filters.minPrice || ""}
+            onChange={(e) => updateFilters({ min_price: e.target.value || null })}
+            placeholder="Min"
+            className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
+          />
+          <input
+            type="number"
+            value={filters.maxPrice || ""}
+            onChange={(e) => updateFilters({ max_price: e.target.value || null })}
+            placeholder="Max"
+            className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
+          />
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="content-container py-8">
       {/* Brand Header */}
@@ -286,167 +437,46 @@ export default function BrandPage({
       )}
 
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="sticky top-4 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Filters</h2>
-              <button
-                onClick={clearFilters}
-                className="text-sm text-ui-fg-subtle hover:text-ui-fg-base"
-              >
-                Clear All
-              </button>
-            </div>
+        {/* Mobile Drawer */}
+        {showMobileFilters && (
+          <div
+            id="mobile-filter-drawer"
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 lg:hidden"
+            style={{ zIndex: 9998 }}
+          >
+            <div
+              className="fixed inset-0 bg-black bg-opacity-40"
+              onClick={() => setShowMobileFilters(false)}
+              style={{ zIndex: 9998 }}
+            />
 
-            {/* Category Filter */}
-            {filterOptions?.categories &&
-              filterOptions.categories.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={filters.category}
-                    onChange={(e) =>
-                      updateFilters({ category: e.target.value || null })
-                    }
-                    className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
-                  >
-                    <option value="">All Categories</option>
-                    {filterOptions.categories.map((category) => (
-                      <option key={category.id} value={category.name}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-            {/* Gender Filter */}
-            {filterOptions?.genders && filterOptions.genders.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Gender</label>
-                <div className="space-y-2">
-                  {filterOptions.genders.map((gender) => (
-                    <label key={gender} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.gender.includes(gender)}
-                        onChange={() =>
-                          handleFilterChange("gender", gender, true)
-                        }
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{gender}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className={`fixed top-0 left-0 h-full w-80 max-w-[85%] bg-white shadow-xl transform transition-transform`} style={{ zIndex: 9999 }}>
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 className="text-base font-bold">Filters</h2>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  aria-label="Close filters"
+                  className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-            )}
 
-            {/* Rim Style Filter */}
-            {filterOptions?.rim_styles &&
-              filterOptions.rim_styles.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Rim Style
-                  </label>
-                  <div className="space-y-2">
-                    {filterOptions.rim_styles.map((style) => (
-                      <label key={style} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={filters.rimStyle.includes(style)}
-                          onChange={() =>
-                            handleFilterChange("rim_style", style, true)
-                          }
-                          className="mr-2"
-                        />
-                        <span className="text-sm">{style}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            {/* Shapes Filter */}
-            {filterOptions?.shapes && filterOptions.shapes.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Shapes</label>
-                <div className="space-y-2">
-                  {filterOptions.shapes.map((shape) => (
-                    <label key={shape} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.shapes.includes(shape)}
-                        onChange={() =>
-                          handleFilterChange("shapes", shape, true)
-                        }
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{shape}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Size Filter */}
-            {filterOptions?.sizes && filterOptions.sizes.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Size</label>
-                <div className="space-y-2">
-                  {filterOptions.sizes.map((size) => (
-                    <label key={size} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.size.includes(size)}
-                        onChange={() => handleFilterChange("size", size, true)}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{size}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Price Range */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Price Range
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={filters.minPrice || ""}
-                  onChange={(e) =>
-                    updateFilters({ min_price: e.target.value || null })
-                  }
-                  placeholder="Min"
-                  className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
-                />
-                <input
-                  type="number"
-                  value={filters.maxPrice || ""}
-                  onChange={(e) =>
-                    updateFilters({ max_price: e.target.value || null })
-                  }
-                  placeholder="Max"
-                  className="w-full px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive"
-                />
+              <div className="h-full overflow-auto p-4">
+                <BrandFilterSidebar />
               </div>
             </div>
           </div>
+        )}
+
+        {/* Sidebar Filters - visible on lg and up */}
+        <aside className="hidden lg:block lg:w-72 flex-shrink-0 self-start lg:sticky lg:top-20" style={{ zIndex: 20 }}>
+          <BrandFilterSidebar />
         </aside>
-
-
-
-
-
-
-
 
         {/* Main Content */}
         <div className="flex-1">
@@ -458,6 +488,17 @@ export default function BrandPage({
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowMobileFilters(true)}
+                className="inline-flex items-center gap-2 p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
+                aria-label="Open filters"
+                aria-haspopup="dialog"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="text-sm font-medium">Filters</span>
+              </button>
               <label className="text-sm font-medium">Sort by:</label>
               <select
                 value={`${filters.order}_${filters.orderDirection}`}
