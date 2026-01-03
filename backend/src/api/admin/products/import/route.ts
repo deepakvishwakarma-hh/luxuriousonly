@@ -85,6 +85,7 @@ const MARKETPLACE_FIELDS = [
   "is_bundle",
   "availablity_date",
   "adult_content",
+  "region_availability",
 ]
 
 const ALL_EXTRA_FIELDS = [
@@ -235,6 +236,7 @@ function extractMetadata(headers: string[], row: string[]): Record<string, any> 
           metadata[header.trim()] = value
         }
       } else {
+        // Store as string (including region_availability)
         metadata[header.trim()] = value
       }
     }
@@ -802,6 +804,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const productGroups = groupProductsByName(productsForGrouping)
 
     // Second pass: build create arrays (grouped by name, variants based on size)
+    const processingErrors: Array<{ rowIndex: number; productName: string; error: string }> = []
+
     for (const [groupKey, groupProducts] of productGroups.entries()) {
       if (groupProducts.length === 0) continue
 
@@ -814,35 +818,47 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const variantProducts = groupProducts.slice(1)
 
       // Process main product with variants
-      const mainProductProcessed = await processProductRow(
-        mainRow,
-        headers,
-        normalizedHeaders,
-        mainRowIndex,
-        mainRowData,
-        categoryNameToIdMap,
-        brandNameToIdMap,
-        allSalesChannels,
-        allStockLocations,
-        defaultSalesChannelId,
-        defaultLocationId,
-        productNameIndex,
-        handleIndex,
-        skuIndex,
-        imagesIndex,
-        imagesAltIndex,
-        thumbnailAltIndex,
-        categoriesIndex,
-        brandIndex,
-        salesChannelIdIndex,
-        locationIdIndex,
-        stockIndex,
-        salePriceIndex,
-        regularPriceIndex,
-        publishedIndex,
-        sizeIndex,
-        variantProducts.map((vp) => vp.data) // variant data
-      )
+      let mainProductProcessed: any = null
+      try {
+        mainProductProcessed = await processProductRow(
+          mainRow,
+          headers,
+          normalizedHeaders,
+          mainRowIndex,
+          mainRowData,
+          categoryNameToIdMap,
+          brandNameToIdMap,
+          allSalesChannels,
+          allStockLocations,
+          defaultSalesChannelId,
+          defaultLocationId,
+          productNameIndex,
+          handleIndex,
+          skuIndex,
+          imagesIndex,
+          imagesAltIndex,
+          thumbnailAltIndex,
+          categoriesIndex,
+          brandIndex,
+          salesChannelIdIndex,
+          locationIdIndex,
+          stockIndex,
+          salePriceIndex,
+          regularPriceIndex,
+          publishedIndex,
+          sizeIndex,
+          variantProducts.map((vp) => vp.data) // variant data
+        )
+      } catch (rowError: any) {
+        const errorMessage = rowError instanceof Error ? rowError.message : String(rowError)
+        processingErrors.push({
+          rowIndex: mainRowIndex + 1, // +1 because rowIndex is 0-based but users see 1-based
+          productName: mainName || "Unknown",
+          error: errorMessage,
+        })
+        console.error(`Error processing product at row ${mainRowIndex + 1} (${mainName}):`, rowError)
+        continue // Skip this product and continue with the next
+      }
 
       if (mainProductProcessed) {
         const { productData, locationStock, brandId } = mainProductProcessed
@@ -889,6 +905,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
+    // If there were processing errors, include them in the response (but don't fail the entire import)
+    if (processingErrors.length > 0) {
+      console.warn(`Failed to process ${processingErrors.length} product(s):`, processingErrors)
+    }
+
     // Process creates in batches
     let totalCreated = 0
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK)
@@ -901,12 +922,46 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const batchProductData = batch.map((item) => item.productData)
       const batchBrandIds = batch.map((item) => item.brandId)
 
-      const { result } = await batchProductsWorkflow(req.scope).run({
-        input: {
-          create: batchProductData,
-          update: [],
-        },
-      })
+      let result: any
+      try {
+        const workflowResult = await batchProductsWorkflow(req.scope).run({
+          input: {
+            create: batchProductData,
+            update: [],
+          },
+        })
+        result = workflowResult.result
+      } catch (workflowError: any) {
+        console.error("Error in batchProductsWorkflow:", workflowError)
+
+        // Extract detailed workflow error information
+        let workflowErrorMessage = "Failed to create products in workflow"
+        const workflowErrorDetails: any = {
+          batchIndex: i,
+          batchSize: batch.length,
+        }
+
+        if (workflowError instanceof Error) {
+          workflowErrorMessage = workflowError.message
+          workflowErrorDetails.message = workflowError.message
+          workflowErrorDetails.name = workflowError.name
+        }
+
+        // Check for workflow-specific error details
+        if (workflowError?.errors) {
+          workflowErrorDetails.errors = workflowError.errors
+        }
+
+        if (workflowError?.action) {
+          workflowErrorDetails.action = workflowError.action
+        }
+
+        // Throw a more descriptive error
+        throw new Error(
+          `Workflow error at batch ${Math.floor(i / BATCH_SIZE) + 1}: ${workflowErrorMessage}. ` +
+          `Details: ${JSON.stringify(workflowErrorDetails)}`
+        )
+      }
 
       console.log("Batch create result:", JSON.stringify(result, null, 2))
 
@@ -1086,12 +1141,52 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           updated: 0,
         },
       },
+      ...(processingErrors.length > 0 && {
+        warnings: {
+          failedProducts: processingErrors,
+          message: `${processingErrors.length} product(s) failed to process. Check warnings for details.`,
+        },
+      }),
     })
   } catch (error) {
     console.error("Error importing products:", error)
+
+    // Extract detailed error information
+    let errorMessage = "An error occurred while importing products"
+    let errorDetails: any = null
+
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage
+      errorDetails = {
+        name: error.name,
+        message: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      }
+
+      // Check if it's a workflow error with more details
+      if ((error as any).action || (error as any).step) {
+        errorDetails.workflow = {
+          action: (error as any).action,
+          step: (error as any).step,
+        }
+      }
+
+      // Check for validation errors
+      if ((error as any).errors) {
+        errorDetails.errors = (error as any).errors
+      }
+    } else if (typeof error === "object" && error !== null) {
+      errorDetails = error
+      if ("message" in error) {
+        errorMessage = String(error.message)
+      }
+    }
+
     return res.status(500).json({
-      message: error instanceof Error ? error.message : "An error occurred while importing products",
+      message: errorMessage,
       success: false,
+      error: errorDetails,
+      ...(errorDetails?.errors && { errors: errorDetails.errors }),
     })
   }
 }

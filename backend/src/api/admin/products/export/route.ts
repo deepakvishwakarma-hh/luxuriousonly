@@ -76,6 +76,7 @@ const MARKETPLACE_FIELDS = [
   "is_bundle",
   "availablity_date",
   "adult_content",
+  "region_availability",
 ]
 
 const ALL_EXTRA_FIELDS = [
@@ -266,6 +267,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         // Add all extra fields from metadata
         ...ALL_EXTRA_FIELDS.map((field) => {
           const value = getMetadataValue(metadata, field)
+          
+          // Special handling for region_availability - always return as comma-separated string
+          if (field === "region_availability") {
+            if (Array.isArray(value)) {
+              return value.join(",")
+            }
+            return value || ""
+          }
+          
           // Handle arrays and objects
           if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
             return JSON.stringify(value)

@@ -29,24 +29,56 @@ const ProductImportExportPage = () => {
       try {
         // Use fetch directly to have better control over error handling
         const baseUrl = import.meta.env.VITE_BACKEND_URL || "/";
-        const response = await fetch(`${baseUrl}/admin/products/import`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            csv,
-            filename: "products-import.csv",
-          }),
-        });
+        
+        if (!csv || csv.trim().length === 0) {
+          throw new Error("CSV content is empty. Please provide valid CSV data.");
+        }
+        
+        let response: Response;
+        try {
+          response = await fetch(`${baseUrl}/admin/products/import`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              csv,
+              filename: "products-import.csv",
+            }),
+          });
+        } catch (networkError: any) {
+          // Handle network errors (connection issues, CORS, etc.)
+          throw new Error(
+            `Network error: ${networkError.message || "Failed to connect to server. Please check your connection and try again."}`
+          );
+        }
 
-        const data = await response.json();
+        let data: any;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          // If response is not JSON, try to get text
+          const text = await response.text();
+          throw new Error(
+            `Failed to parse response: ${text || response.statusText || "Unknown error"}`
+          );
+        }
 
         // Check if response indicates an error
         if (!response.ok) {
-          const error = new Error(data.message || "Validation failed");
-          (error as any).errorData = data;
+          const errorMessage = 
+            data.message || 
+            data.error?.message || 
+            (data.errors && Array.isArray(data.errors) ? data.errors.join(", ") : null) ||
+            `HTTP ${response.status}: ${response.statusText}`;
+          
+          const error = new Error(errorMessage);
+          (error as any).errorData = {
+            ...data,
+            status: response.status,
+            statusText: response.statusText,
+          };
           throw error;
         }
 
@@ -99,11 +131,27 @@ const ProductImportExportPage = () => {
       }
     },
     onSuccess: (data: any) => {
-      toast.success("Products imported successfully!", {
-        description: `Imported ${
-          data.summary?.stats?.created || 0
-        } products. Transaction ID: ${data.transaction_id}`,
-      });
+      const createdCount = data.summary?.stats?.created || 0;
+      const hasWarnings = data.warnings && data.warnings.failedProducts?.length > 0;
+      
+      if (hasWarnings) {
+        const failedCount = data.warnings.failedProducts.length;
+        toast.success("Products imported with warnings", {
+          description: `Imported ${createdCount} products. ${failedCount} product(s) failed to process. Check console for details.`,
+          duration: 10000,
+        });
+        
+        // Log detailed warnings
+        console.warn("Import warnings:", data.warnings);
+        if (data.warnings.failedProducts) {
+          console.warn("Failed products:", data.warnings.failedProducts);
+        }
+      } else {
+        toast.success("Products imported successfully!", {
+          description: `Imported ${createdCount} products. Transaction ID: ${data.transaction_id || "N/A"}`,
+        });
+      }
+      
       setCsvContent("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -148,7 +196,10 @@ const ProductImportExportPage = () => {
 
       // Process error data if we found it
       if (errorData) {
-        errorMessage = errorData.message || "Validation failed";
+        errorMessage = 
+          errorData.message || 
+          errorData.error?.message || 
+          "Validation failed";
 
         // Build detailed error description
         const errorParts: string[] = [];
@@ -156,6 +207,8 @@ const ProductImportExportPage = () => {
         // Check for errors array first
         if (errorData.errors && Array.isArray(errorData.errors)) {
           errorParts.push(...errorData.errors);
+        } else if (errorData.error?.errors && Array.isArray(errorData.error.errors)) {
+          errorParts.push(...errorData.error.errors);
         }
 
         // Check for missing categories
@@ -180,10 +233,30 @@ const ProductImportExportPage = () => {
           );
         }
 
+        // Check for workflow errors
+        if (errorData.error?.workflow) {
+          errorParts.push(
+            `⚠️ Workflow error: ${JSON.stringify(errorData.error.workflow)}`
+          );
+        }
+
+        // Check for HTTP status information
+        if (errorData.status) {
+          errorParts.push(`HTTP Status: ${errorData.status} ${errorData.statusText || ""}`);
+        }
+
+        // Include error details if available
+        if (errorData.error && typeof errorData.error === "object") {
+          const errorObj = errorData.error;
+          if (errorObj.message && errorObj.message !== errorMessage) {
+            errorParts.push(`Details: ${errorObj.message}`);
+          }
+        }
+
         if (errorParts.length > 0) {
           errorDescription = errorParts.join("\n");
-        } else if (errorData.message) {
-          errorDescription = errorData.message;
+        } else if (errorData.message || errorData.error?.message) {
+          errorDescription = errorData.message || errorData.error?.message;
         }
       }
 
@@ -193,6 +266,11 @@ const ProductImportExportPage = () => {
         error.message
       ) {
         errorDescription = error.message;
+      }
+      
+      // Last resort: show the raw error if available
+      if (errorDescription === "An error occurred during import" && error.toString) {
+        errorDescription = error.toString();
       }
 
       toast.error(errorMessage, {
@@ -249,7 +327,23 @@ const ProductImportExportPage = () => {
     // Validate file type
     if (!file.name.endsWith(".csv")) {
       toast.error("Invalid file type", {
-        description: "Please upload a CSV file",
+        description: "Please upload a CSV file. Only .csv files are supported.",
+      });
+      return;
+    }
+
+    // Validate file size (e.g., max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error("File too large", {
+        description: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds maximum allowed size of ${maxSize / 1024 / 1024}MB`,
+      });
+      return;
+    }
+
+    if (file.size === 0) {
+      toast.error("Empty file", {
+        description: "The uploaded file is empty. Please upload a file with content.",
       });
       return;
     }
@@ -259,22 +353,47 @@ const ProductImportExportPage = () => {
     try {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target?.result as string;
-        setCsvContent(content);
-        // Auto-submit after reading
-        importMutation.mutate(content);
+        try {
+          const content = e.target?.result as string;
+          if (!content || content.trim().length === 0) {
+            toast.error("Empty file content", {
+              description: "The CSV file appears to be empty or could not be read.",
+            });
+            setIsImporting(false);
+            return;
+          }
+          setCsvContent(content);
+          // Auto-submit after reading
+          importMutation.mutate(content);
+        } catch (contentError: any) {
+          toast.error("Failed to process file content", {
+            description: contentError.message || "An error occurred while processing the file content",
+          });
+          setIsImporting(false);
+        }
       };
-      reader.onerror = () => {
+      reader.onerror = (error) => {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : "Could not read the CSV file. Please check the file and try again.";
         toast.error("Failed to read file", {
-          description: "Could not read the CSV file",
+          description: errorMessage,
         });
         setIsImporting(false);
       };
-      reader.readAsText(file);
+      reader.onabort = () => {
+        toast.error("File read cancelled", {
+          description: "The file read operation was cancelled.",
+        });
+        setIsImporting(false);
+      };
+      reader.readAsText(file, "UTF-8");
     } catch (error: any) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An error occurred while processing the file";
       toast.error("Failed to process file", {
-        description:
-          error.message || "An error occurred while processing the file",
+        description: errorMessage,
       });
       setIsImporting(false);
     }
@@ -343,6 +462,7 @@ const ProductImportExportPage = () => {
       "is_bundle",
       "availablity_date",
       "adult_content",
+      "region_availability",
       "published",
     ];
 
@@ -401,6 +521,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-15",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -456,6 +577,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-15",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -511,6 +633,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-15",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -565,6 +688,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-16",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -619,6 +743,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-16",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -673,6 +798,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-16",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -728,6 +854,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-17",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -783,6 +910,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-17",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
       {
@@ -838,6 +966,7 @@ const ProductImportExportPage = () => {
         is_bundle: "0",
         availablity_date: "2024-01-17",
         adult_content: "No",
+        region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
       },
     ];
@@ -962,6 +1091,7 @@ const ProductImportExportPage = () => {
         product.is_bundle,
         product.availablity_date,
         product.adult_content,
+        product.region_availability || "",
         product.published,
       ];
       csvRows.push(row.map(escapeCsvField).join(","));
@@ -991,9 +1121,9 @@ const ProductImportExportPage = () => {
   };
 
   // Generate CSV example with all fields
-  const csvExample = `Title,Description,Handle,SKU,Status,Subtitle,Thumbnail,Images,Categories,sales_channel_id,location_id,stock,days_of_deliery,max_days_of_delivery,days_of_delivery_out_of_stock,max_days_of_delivery_out_of_stock,days_of_delivery_backorders,delivery_note,disebled_days,seo_title,meta_description,slug,focus_keyphrase,keyphrase_synonyms,related_keyphrases,canonical_url,robots_index,robots_follow,robots_advanced,breadcrumb_title,schema_type,schema_subtype,article_type,product_schema,faq_schema,og_title,og_description,og_image,twitter_title,twitter_description,twitter_image,cornerstone,seo_score,readability_score,item_no,condition,lens width,lens bridge,arm length,model,color_code,EAN,gender,rim style,shapes,frame_material,size,lens_weight,lens_bridge,arm_length,department,gtin,mpn,brand,condition,gender,size,size_system,size_type,color,material,pattern,age_group,multipack,is_bundle,availablity_date,adult_content
-"Product 1","This is a description","product-1","PROD-001","published","Subtitle","https://example.com/image.jpg","https://example.com/img1.jpg,https://example.com/img2.jpg","Sunglasses","","",10,5,10,7,14,3,"Delivery note","Mon,Tue",SEO Title,Meta description,product-1,keyphrase,"synonym1,synonym2","related1,related2",https://example.com/product-1,index,follow,"noindex,nofollow",Breadcrumb,Product,Subtype,Article,"{}","[]",OG Title,OG Description,https://example.com/og.jpg,Twitter Title,Twitter Description,https://example.com/twitter.jpg,true,90,85,ITEM001,New,50,18,140,Model A,BLUE,EAN123456789,Male,Full Rim,Round,Acetate,L,25,18,140,Optical,GTIN123,MPN001,Brand Name,New,Male,L,US,Regular,Blue,Plastic,Solid,adult,1,false,2024-01-01,false
-"Product 2","Another description","product-2","PROD-002","published","Subtitle 2","https://example.com/image2.jpg","https://example.com/img3.jpg,https://example.com/img4.jpg","Eyewears","","",20,7,14,10,21,5,"Express delivery","Sat,Sun",SEO Title 2,Meta description 2,product-2,keyphrase2,"synonym3","related3",https://example.com/product-2,index,follow,"",Breadcrumb 2,Product,Subtype,Article,"{}","[]",OG Title 2,OG Description 2,https://example.com/og2.jpg,Twitter Title 2,Twitter Description 2,https://example.com/twitter2.jpg,false,85,80,ITEM002,Used,52,19,145,Model B,RED,EAN987654321,Female,Half Rim,Square,Metal,M,28,19,145,Optical,GTIN456,MPN002,Brand Name 2,Used,Female,M,EU,Regular,Red,Metal,Striped,adult,1,false,2024-02-01,false`;
+  const csvExample = `Title,Description,Handle,SKU,Status,Subtitle,Thumbnail,Images,Categories,sales_channel_id,location_id,stock,days_of_deliery,max_days_of_delivery,days_of_delivery_out_of_stock,max_days_of_delivery_out_of_stock,days_of_delivery_backorders,delivery_note,disebled_days,seo_title,meta_description,slug,focus_keyphrase,keyphrase_synonyms,related_keyphrases,canonical_url,robots_index,robots_follow,robots_advanced,breadcrumb_title,schema_type,schema_subtype,article_type,product_schema,faq_schema,og_title,og_description,og_image,twitter_title,twitter_description,twitter_image,cornerstone,seo_score,readability_score,item_no,condition,lens width,lens bridge,arm length,model,color_code,EAN,gender,rim style,shapes,frame_material,size,lens_weight,lens_bridge,arm_length,department,gtin,mpn,brand,condition,gender,size,size_system,size_type,color,material,pattern,age_group,multipack,is_bundle,availablity_date,adult_content,region_availability
+"Product 1","This is a description","product-1","PROD-001","published","Subtitle","https://example.com/image.jpg","https://example.com/img1.jpg,https://example.com/img2.jpg","Sunglasses","","",10,5,10,7,14,3,"Delivery note","Mon,Tue",SEO Title,Meta description,product-1,keyphrase,"synonym1,synonym2","related1,related2",https://example.com/product-1,index,follow,"noindex,nofollow",Breadcrumb,Product,Subtype,Article,"{}","[]",OG Title,OG Description,https://example.com/og.jpg,Twitter Title,Twitter Description,https://example.com/twitter.jpg,true,90,85,ITEM001,New,50,18,140,Model A,BLUE,EAN123456789,Male,Full Rim,Round,Acetate,L,25,18,140,Optical,GTIN123,MPN001,Brand Name,New,Male,L,US,Regular,Blue,Plastic,Solid,adult,1,false,2024-01-01,false,"de,us,in,fr,it,gb,es"
+"Product 2","Another description","product-2","PROD-002","published","Subtitle 2","https://example.com/image2.jpg","https://example.com/img3.jpg,https://example.com/img4.jpg","Eyewears","","",20,7,14,10,21,5,"Express delivery","Sat,Sun",SEO Title 2,Meta description 2,product-2,keyphrase2,"synonym3","related3",https://example.com/product-2,index,follow,"",Breadcrumb 2,Product,Subtype,Article,"{}","[]",OG Title 2,OG Description 2,https://example.com/og2.jpg,Twitter Title 2,Twitter Description 2,https://example.com/twitter2.jpg,false,85,80,ITEM002,Used,52,19,145,Model B,RED,EAN987654321,Female,Half Rim,Square,Metal,M,28,19,145,Optical,GTIN456,MPN002,Brand Name 2,Used,Female,M,EU,Regular,Red,Metal,Striped,adult,1,false,2024-02-01,false,"de,us,in,fr,it,gb,es"`;
 
   return (
     <Container>
