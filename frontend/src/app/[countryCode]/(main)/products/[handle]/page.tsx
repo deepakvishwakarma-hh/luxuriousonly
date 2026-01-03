@@ -321,7 +321,7 @@ export default async function ProductPage(props: Props) {
           __html: JSON.stringify(breadcrumbStructuredData),
         }}
       />
-      {JSON.stringify(availability)}
+      {/* {JSON.stringify(availability)} */}
       <ProductTemplate
         product={pricedProduct}
         region={region}
