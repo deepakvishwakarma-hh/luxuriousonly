@@ -47,7 +47,10 @@ const ResetPassword = () => {
       <form
         className="w-full"
         action={formAction}
-        onSubmit={() => setHasSubmitted(true)}
+        onSubmit={(e) => {
+          console.log("Form submitted")
+          setHasSubmitted(true)
+        }}
       >
         <div className="flex flex-col w-full gap-y-2">
           <Input

@@ -271,20 +271,88 @@ export async function forgotPassword(
   }
 
   try {
-    // TODO: Implement email sending functionality
-    // This is where you would:
-    // 1. Verify the email exists in the system
-    // 2. Generate a reset token
-    // 3. Send the reset link via email
-    // 4. Store the token with expiration in the database
+    // Request password reset token via MedusaJS Auth API
+    await sdk.client.fetch("/auth/customer/emailpass/reset-password", {
+      method: "POST",
+      body: {
+        identifier: email,
+      },
+    })
 
-    // For now, we'll just return success
-    // In a real implementation, you would use the Medusa SDK or your email service
-    // await sdk.store.customer.requestPasswordReset({ email })
-    // or similar API call
+    console.log("[Forgot Password] Reset request sent successfully")
+    return null // Success - no error message (always return success for security)
+  } catch (error: any) {
+    // Log error for debugging but don't reveal to user
+    console.error("[Forgot Password] Error:", error)
+    // Don't reveal if email exists or not for security reasons
+    // Always return success message to prevent email enumeration
+    return null
+  }
+}
 
+export async function resetPassword(
+  _currentState: unknown,
+  formData: FormData
+): Promise<string | null> {
+  const token = formData.get("token") as string
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
+  const confirmPassword = formData.get("confirm_password") as string
+
+  if (!token) {
+    return "Reset token is required"
+  }
+
+  if (!email) {
+    return "Email is required"
+  }
+
+  if (!password) {
+    return "Password is required"
+  }
+
+  if (password !== confirmPassword) {
+    return "Passwords do not match"
+  }
+
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long"
+  }
+
+  try {
+    // Update password using the reset token
+    // Use SDK auth.updateProvider method as per MedusaJS documentation
+    // Token is sent as Bearer token in Authorization header
+    await sdk.auth.updateProvider(
+      "customer",      // actor type
+      "emailpass",     // auth provider
+      {
+        email: email,         // from query param
+        password: password,   // new password from form
+      },
+      token            // from query param; sent as Bearer token
+    )
+
+    console.log("[Reset Password] Password updated successfully")
     return null // Success - no error message
   } catch (error: any) {
-    return error.toString()
+    console.error("[Reset Password] Error:", error)
+
+    // Handle specific error cases
+    const errorMessage = error.message || error.toString() || "Unknown error"
+
+    if (
+      errorMessage.includes("expired") ||
+      errorMessage.includes("invalid") ||
+      errorMessage.includes("token")
+    ) {
+      return "Invalid or expired reset token. Please request a new password reset."
+    }
+
+    if (errorMessage.includes("password")) {
+      return "Password does not meet requirements. Please try again."
+    }
+
+    return "Failed to reset password. Please try again."
   }
 }
