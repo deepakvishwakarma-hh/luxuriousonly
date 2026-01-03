@@ -5,10 +5,14 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock* ./
+COPY package-lock.json* ./
 
-# Install dependencies
-RUN npm ci || yarn install
+# Install dependencies using npm
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 
 # Copy application files
 COPY . .

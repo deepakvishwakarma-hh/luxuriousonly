@@ -7,10 +7,14 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock* ./
+COPY package-lock.json* ./
 
-# Install dependencies
-RUN npm ci || yarn install --frozen-lockfile
+# Install dependencies using npm
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -21,13 +25,16 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN npm run build || yarn build
+RUN npm run build
 
 # Production image
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -38,6 +45,8 @@ COPY --from=builder --chown=medusa:nodejs /app/dist ./dist
 COPY --from=builder --chown=medusa:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=medusa:nodejs /app/package*.json ./
 COPY --from=builder --chown=medusa:nodejs /app/medusa-config.ts ./
+COPY --from=builder --chown=medusa:nodejs /app/tsconfig.json ./
+COPY --from=builder --chown=medusa:nodejs /app/instrumentation.ts ./
 COPY --from=builder --chown=medusa:nodejs /app/src ./src
 COPY --from=builder --chown=medusa:nodejs /app/static ./static
 COPY --from=builder --chown=medusa:nodejs /app/public ./public

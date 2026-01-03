@@ -24,10 +24,36 @@ This will start:
 
 ### Production Environment
 
-To build and run the production containers:
+**Important:** The frontend build requires the backend to be available. Use the build script to ensure proper build order:
 
+**Windows (PowerShell):**
+```powershell
+.\build-docker.ps1
+```
+
+**Linux/Mac:**
 ```bash
-docker-compose up --build
+chmod +x build-docker.sh
+./build-docker.sh
+```
+
+**Or manually build in order:**
+```bash
+# 1. Build and start postgres and backend first
+docker compose build postgres backend
+docker compose up -d postgres backend
+
+# 2. Wait for backend to be healthy (check with: docker compose ps)
+# 3. Then build frontend
+docker compose build frontend
+
+# 4. Start all services
+docker compose up -d
+```
+
+**Quick build (may fail if backend isn't ready):**
+```bash
+docker compose up --build
 ```
 
 ## Environment Variables
@@ -37,7 +63,17 @@ Create a `.env` file in the root directory or set environment variables before r
 ```env
 JWT_SECRET=your_jwt_secret_here
 COOKIE_SECRET=your_cookie_secret_here
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=your_publishable_key_here
 ```
+
+**Required Environment Variables:**
+- `JWT_SECRET`: Secret key for JWT token generation (defaults to "supersecret" if not set)
+- `COOKIE_SECRET`: Secret key for cookie encryption (defaults to "supersecret" if not set)
+- `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`: Medusa publishable API key (required for frontend)
+
+**Note:** The Docker Compose files automatically configure:
+- `MEDUSA_BACKEND_URL`: Server-side backend URL (internal Docker network)
+- `NEXT_PUBLIC_MEDUSA_BACKEND_URL`: Client-side backend URL (for browser access)
 
 ## Database Setup
 
