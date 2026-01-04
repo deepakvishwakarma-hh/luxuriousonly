@@ -8,6 +8,7 @@ import ProductTemplate from "@modules/products/templates"
 import { HttpTypes } from "@medusajs/types"
 import { getBaseURL } from "@lib/util/env"
 import { getProductPrice } from "@lib/util/get-product-price"
+import { websiteConfig } from "@lib/website.config"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -107,7 +108,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     ? product.description.substring(0, 160).replace(/\n/g, " ")
     : product.subtitle
     ? `${product.subtitle} - ${product.title}`
-    : `Shop ${product.title} at Luxurious Only. Premium luxury products with free shipping.`
+    : `Shop ${product.title} at ${websiteConfig.shortName}. Premium luxury products with free shipping.`
 
   // Build keywords from product data
   const keywords: string[] = [
@@ -140,7 +141,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
         ]
       : []
 
-  const siteName = "Luxurious Only"
+  const siteName = websiteConfig.shortName
   const title = `${product.title}${
     product.subtitle ? ` - ${product.subtitle}` : ""
   } | ${siteName}`
@@ -272,7 +273,7 @@ export default async function ProductPage(props: Props) {
         : "https://schema.org/OutOfStock",
       seller: {
         "@type": "Organization",
-        name: "Luxurious Only",
+        name: websiteConfig.shortName,
       },
     }
   }

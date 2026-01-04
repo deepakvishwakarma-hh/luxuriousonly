@@ -4,6 +4,7 @@ import { useState } from "react"
 import { FaPhone, FaEnvelope } from "react-icons/fa"
 import { IoArrowUp } from "react-icons/io5"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { websiteConfig } from "@lib/website.config"
 
 const Footer = () => {
   const [email, setEmail] = useState("")
@@ -33,26 +34,24 @@ const Footer = () => {
                 About
               </h3>
               <p className="text-sm leading-relaxed mb-4">
-                Explore Designer Luxury Eyewear at luxuryeyewear.in. Our exclusive
-                collection of premium Sunglasses, Eyeglasses & Frames offers
-                unmatched quality and style.
+                {websiteConfig.company.description}
               </p>
 
               <div className="space-y-3">
                 <a
-                  href="tel:+919871981806"
+                  href={websiteConfig.contact.phoneLink}
                   className="flex items-center gap-3 hover:text-white"
                 >
                   <FaPhone size={14} />
-                  <span className="text-sm">+91 9871981806</span>
+                  <span className="text-sm">{websiteConfig.contact.phoneFormatted}</span>
                 </a>
 
                 <a
-                  href="mailto:support@luxuryeyewear.in"
+                  href={websiteConfig.contact.emailLink}
                   className="flex items-center gap-3 hover:text-white"
                 >
                   <FaEnvelope size={14} />
-                  <span className="text-sm">support@luxuryeyewear.in</span>
+                  <span className="text-sm">{websiteConfig.contact.email}</span>
                 </a>
               </div>
             </div>
@@ -188,7 +187,7 @@ const Footer = () => {
         {/* ================= BOTTOM BAR ================= */}
         <div className="border-t border-gray-800 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs sm:text-sm text-gray-500 text-center">
-            © 2025 Luxuryeyewear.in — All Rights Reserved
+            {websiteConfig.company.copyright}
           </p>
 
           <button

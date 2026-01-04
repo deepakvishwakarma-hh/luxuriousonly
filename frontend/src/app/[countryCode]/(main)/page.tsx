@@ -7,6 +7,7 @@ import HeroCarouselTemplate from "@modules/layout/templates/hero-carousel"
 import DiscountBar from "@modules/home/components/discount-bar"
 import TopCatalog from "@modules/home/components/top-catalog"
 import PaginatedProducts from "@modules/store/templates/paginated-products"
+import { websiteConfig } from "@lib/website.config"
 
 type Props = {
   params: Promise<{ countryCode: string }>
@@ -22,7 +23,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     countryCode.toUpperCase()
 
   const regionName = region?.name || "Store"
-  const siteName = "Luxurious Only"
+  const siteName = websiteConfig.shortName
   const title = `${siteName} - Premium Luxury Products | ${countryName}`
   const description = `Discover premium luxury products at ${siteName}. Shop the finest collection of high-end items delivered to ${countryName}. Free shipping on orders over $100.`
 
@@ -108,9 +109,9 @@ export default async function Home(props: Props) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Luxurious Only",
+    name: websiteConfig.shortName,
     url: canonical,
-    description: `Discover premium luxury products at Luxurious Only. Shop the finest collection of high-end items delivered to ${countryName}.`,
+    description: `Discover premium luxury products at ${websiteConfig.shortName}. Shop the finest collection of high-end items delivered to ${countryName}.`,
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -124,9 +125,9 @@ export default async function Home(props: Props) {
   const organizationData = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Luxurious Only",
+    name: websiteConfig.shortName,
     url: baseURL,
-    logo: `${baseURL}/opengraph-image.jpg`,
+    logo: `${baseURL}${websiteConfig.logo.path}`,
     description: "Premium luxury products and high-end items",
     address: {
       "@type": "PostalAddress",

@@ -10,6 +10,7 @@ import NavSearch from "@modules/layout/components/nav-search"
 import AccountDropdown from "@modules/layout/components/account-dropdown"
 import CompareButton from "@modules/layout/components/compare-button"
 import LikedButton from "@modules/layout/components/liked-button"
+import { websiteConfig } from "@lib/website.config"
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -37,10 +38,10 @@ export default function Nav() {
               className="hidden md:flex items-center"
             >
               <Image
-                src="/logo.avif"
-                alt="Luxurious Mart"
-                width={205}
-                height={66}
+                src={websiteConfig.logo.path}
+                alt={websiteConfig.logo.alt}
+                width={websiteConfig.logo.desktop.width}
+                height={websiteConfig.logo.desktop.height}
                 className="object-contain"
               />
             </LocalizedClientLink>
@@ -52,10 +53,10 @@ export default function Nav() {
             className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center"
           >
             <Image
-              src="/logo.avif"
-              alt="Luxurious Mart"
-              width={160}
-              height={50}
+              src={websiteConfig.logo.path}
+              alt={websiteConfig.logo.alt}
+              width={websiteConfig.logo.mobile.width}
+              height={websiteConfig.logo.mobile.height}
               className="object-contain"
             />
           </LocalizedClientLink>
