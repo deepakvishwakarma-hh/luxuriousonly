@@ -11,6 +11,9 @@ type FilterSidebarProps = {
     gender: string[]
     shapes: string[]
     size: string[]
+    frameMaterial: string[]
+    shapeFilter: string[]
+    shape: string[]
     minPrice?: string | null
     maxPrice?: string | null
   }
@@ -21,6 +24,9 @@ type FilterSidebarProps = {
     genders?: string[]
     shapes?: string[]
     sizes?: string[]
+    frame_materials?: string[]
+    shape_filters?: string[]
+    shape_values?: string[]
   }
   priceRange: { min: number; max: number }
   priceValues: number[]
@@ -120,6 +126,39 @@ export default function FilterSidebar({
             options={filterOptions.sizes}
             selectedValues={filters.size}
             onChange={(value) => onFilterChange("size", value, true)}
+            getValue={(option) => option as string}
+            getLabel={(option) => option as string}
+          />
+        )}
+
+        {filterOptions?.frame_materials && (
+          <CheckboxFilter
+            label="Frame Material"
+            options={filterOptions.frame_materials}
+            selectedValues={filters.frameMaterial}
+            onChange={(value) => onFilterChange("frame_material", value, true)}
+            getValue={(option) => option as string}
+            getLabel={(option) => option as string}
+          />
+        )}
+
+        {filterOptions?.shape_filters && (
+          <CheckboxFilter
+            label="Shape Filter"
+            options={filterOptions.shape_filters}
+            selectedValues={filters.shapeFilter}
+            onChange={(value) => onFilterChange("shape_filter", value, true)}
+            getValue={(option) => option as string}
+            getLabel={(option) => option as string}
+          />
+        )}
+
+        {filterOptions?.shape_values && (
+          <CheckboxFilter
+            label="Shape"
+            options={filterOptions.shape_values}
+            selectedValues={filters.shape}
+            onChange={(value) => onFilterChange("shape", value, true)}
             getValue={(option) => option as string}
             getLabel={(option) => option as string}
           />

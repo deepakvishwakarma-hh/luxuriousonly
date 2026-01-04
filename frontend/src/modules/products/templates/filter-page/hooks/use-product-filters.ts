@@ -32,6 +32,9 @@ type FilterParams = {
   gender: string[]
   shapes: string[]
   size: string[]
+  frameMaterial: string[]
+  shapeFilter: string[]
+  shape: string[]
   minPrice?: string | null
   maxPrice?: string | null
   order: string
@@ -56,6 +59,9 @@ export function useProductFilters(
     filters.gender.forEach((v) => queryParams.append("gender", v))
     filters.shapes.forEach((v) => queryParams.append("shapes", v))
     filters.size.forEach((v) => queryParams.append("size", v))
+    filters.frameMaterial.forEach((v) => queryParams.append("frame_material", v))
+    filters.shapeFilter.forEach((v) => queryParams.append("shape_filter", v))
+    filters.shape.forEach((v) => queryParams.append("shape", v))
     if (filters.minPrice) queryParams.set("min_price", filters.minPrice)
     if (filters.maxPrice) queryParams.set("max_price", filters.maxPrice)
     queryParams.set("order", filters.order)

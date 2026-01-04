@@ -169,6 +169,9 @@ export type FilterProductsParams = {
   gender?: string | string[]
   shapes?: string | string[]
   size?: string | string[]
+  frame_material?: string | string[]
+  shape_filter?: string | string[]
+  shape?: string | string[]
   min_price?: number
   max_price?: number
   currency_code?: string
@@ -192,6 +195,9 @@ export type FilterProductsResponse = {
     genders: string[]
     shapes: string[]
     sizes: string[]
+    frame_materials?: string[]
+    shape_filters?: string[]
+    shape_values?: string[]
   }
 }
 
@@ -284,6 +290,21 @@ export const filterProducts = async ({
       query.size = Array.isArray(filterParams.size)
         ? filterParams.size.join(",")
         : filterParams.size
+    }
+    if (filterParams.frame_material) {
+      query.frame_material = Array.isArray(filterParams.frame_material)
+        ? filterParams.frame_material.join(",")
+        : filterParams.frame_material
+    }
+    if (filterParams.shape_filter) {
+      query.shape_filter = Array.isArray(filterParams.shape_filter)
+        ? filterParams.shape_filter.join(",")
+        : filterParams.shape_filter
+    }
+    if (filterParams.shape) {
+      query.shape = Array.isArray(filterParams.shape)
+        ? filterParams.shape.join(",")
+        : filterParams.shape
     }
     if (filterParams.min_price !== undefined) {
       query.min_price = filterParams.min_price

@@ -149,6 +149,9 @@ export default function CategoryPage({
       gender: searchParams.getAll("gender"),
       shapes: searchParams.getAll("shapes"),
       size: searchParams.getAll("size"),
+      frameMaterial: searchParams.getAll("frame_material"),
+      shapeFilter: searchParams.getAll("shape_filter"),
+      shape: searchParams.getAll("shape"),
       minPrice: searchParams.get("min_price"),
       maxPrice: searchParams.get("max_price"),
       order: searchParams.get("order") || "created_at",
@@ -166,6 +169,9 @@ export default function CategoryPage({
     filters.gender.forEach((v) => queryParams.append("gender", v))
     filters.shapes.forEach((v) => queryParams.append("shapes", v))
     filters.size.forEach((v) => queryParams.append("size", v))
+    filters.frameMaterial.forEach((v) => queryParams.append("frame_material", v))
+    filters.shapeFilter.forEach((v) => queryParams.append("shape_filter", v))
+    filters.shape.forEach((v) => queryParams.append("shape", v))
     if (filters.minPrice) queryParams.set("min_price", filters.minPrice)
     if (filters.maxPrice) queryParams.set("max_price", filters.maxPrice)
     queryParams.set("order", filters.order)
@@ -405,6 +411,66 @@ export default function CategoryPage({
                         className="mr-2"
                       />
                       <span className="text-sm">{size}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Frame Material Filter */}
+            {filterOptions?.frame_materials && filterOptions.frame_materials.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Frame Material</label>
+                <div className="space-y-2">
+                  {filterOptions.frame_materials.map((material) => (
+                    <label key={material} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.frameMaterial.includes(material)}
+                        onChange={() => handleFilterChange("frame_material", material, true)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{material}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Shape Filter */}
+            {filterOptions?.shape_filters && filterOptions.shape_filters.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Shape Filter</label>
+                <div className="space-y-2">
+                  {filterOptions.shape_filters.map((shapeFilter) => (
+                    <label key={shapeFilter} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.shapeFilter.includes(shapeFilter)}
+                        onChange={() => handleFilterChange("shape_filter", shapeFilter, true)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{shapeFilter}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Shape Filter */}
+            {filterOptions?.shape_values && filterOptions.shape_values.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Shape</label>
+                <div className="space-y-2">
+                  {filterOptions.shape_values.map((shape) => (
+                    <label key={shape} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.shape.includes(shape)}
+                        onChange={() => handleFilterChange("shape", shape, true)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{shape}</span>
                     </label>
                   ))}
                 </div>

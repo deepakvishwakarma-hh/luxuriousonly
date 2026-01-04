@@ -135,6 +135,9 @@ export default function FilterPage({
                     gender: filters.gender,
                     shapes: filters.shapes,
                     size: filters.size,
+                    frameMaterial: filters.frameMaterial,
+                    shapeFilter: filters.shapeFilter,
+                    shape: filters.shape,
                     minPrice: filters.minPrice || undefined,
                     maxPrice: filters.maxPrice || undefined,
                   }}
@@ -164,6 +167,9 @@ export default function FilterPage({
                 gender: filters.gender,
                 shapes: filters.shapes,
                 size: filters.size,
+                frameMaterial: filters.frameMaterial,
+                shapeFilter: filters.shapeFilter,
+                shape: filters.shape,
                 minPrice: filters.minPrice || undefined,
                 maxPrice: filters.maxPrice || undefined,
               }}

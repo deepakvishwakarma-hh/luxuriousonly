@@ -18,6 +18,9 @@ type Props = {
     gender?: string | string[]
     shapes?: string | string[]
     size?: string | string[]
+    frame_material?: string | string[]
+    shape_filter?: string | string[]
+    shape?: string | string[]
     min_price?: string
     max_price?: string
     order?: string
@@ -68,6 +71,21 @@ export default async function FilterProductsPage(props: Props) {
       ? searchParams.size
       : [searchParams.size]
     : undefined
+  const frameMaterial = searchParams.frame_material
+    ? Array.isArray(searchParams.frame_material)
+      ? searchParams.frame_material
+      : [searchParams.frame_material]
+    : undefined
+  const shapeFilter = searchParams.shape_filter
+    ? Array.isArray(searchParams.shape_filter)
+      ? searchParams.shape_filter
+      : [searchParams.shape_filter]
+    : undefined
+  const shape = searchParams.shape
+    ? Array.isArray(searchParams.shape)
+      ? searchParams.shape
+      : [searchParams.shape]
+    : undefined
   const minPrice = searchParams.min_price
     ? parseFloat(searchParams.min_price)
     : undefined
@@ -90,6 +108,9 @@ export default async function FilterProductsPage(props: Props) {
     gender,
     shapes,
     size,
+    frame_material: frameMaterial,
+    shape_filter: shapeFilter,
+    shape,
     min_price: minPrice,
     max_price: maxPrice,
     order,

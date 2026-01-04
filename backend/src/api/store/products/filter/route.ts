@@ -22,6 +22,9 @@
  * - gender: Filter by gender - comma-separated or array (string | string[])
  * - shapes: Filter by shapes - comma-separated or array (string | string[])
  * - size: Filter by size - comma-separated or array (string | string[])
+ * - frame_material: Filter by frame material - comma-separated or array (string | string[])
+ * - shape_filter: Filter by shape filter - comma-separated or array (string | string[])
+ * - shape: Filter by shape - comma-separated or array (string | string[])
  * - limit: Number of results per page (1-100, default: 20)
  * - offset: Pagination offset (default: 0)
  * - order: Sort field - "created_at" | "updated_at" | "title" | "price" (default: "created_at")
@@ -130,6 +133,18 @@ const ProductFilterSchema = z.object({
     z.array(z.string()),
   ]).optional(),
   size: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  frame_material: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  shape_filter: z.union([
+    z.string().transform((val) => parseCommaSeparated(val)),
+    z.array(z.string()),
+  ]).optional(),
+  shape: z.union([
     z.string().transform((val) => parseCommaSeparated(val)),
     z.array(z.string()),
   ]).optional(),
@@ -282,6 +297,9 @@ export async function GET(
     const genderFilters = parsedQuery.gender ? (Array.isArray(parsedQuery.gender) ? parsedQuery.gender : [parsedQuery.gender]) : undefined
     const shapesFilters = parsedQuery.shapes ? (Array.isArray(parsedQuery.shapes) ? parsedQuery.shapes : [parsedQuery.shapes]) : undefined
     const sizeFilters = parsedQuery.size ? (Array.isArray(parsedQuery.size) ? parsedQuery.size : [parsedQuery.size]) : undefined
+    const frameMaterialFilters = parsedQuery.frame_material ? (Array.isArray(parsedQuery.frame_material) ? parsedQuery.frame_material : [parsedQuery.frame_material]) : undefined
+    const shapeFilterFilters = parsedQuery.shape_filter ? (Array.isArray(parsedQuery.shape_filter) ? parsedQuery.shape_filter : [parsedQuery.shape_filter]) : undefined
+    const shapeFilters = parsedQuery.shape ? (Array.isArray(parsedQuery.shape) ? parsedQuery.shape : [parsedQuery.shape]) : undefined
 
     // Determine if we need post-filtering (metadata, price, brand, category, search, or attribute filters)
     const needsPostFiltering = parsedQuery.metadata !== undefined ||
@@ -293,7 +311,10 @@ export async function GET(
       rimStyleFilters !== undefined ||
       genderFilters !== undefined ||
       shapesFilters !== undefined ||
-      sizeFilters !== undefined
+      sizeFilters !== undefined ||
+      frameMaterialFilters !== undefined ||
+      shapeFilterFilters !== undefined ||
+      shapeFilters !== undefined
 
     // If we need post-filtering, fetch more products to account for filtering
     // Otherwise, use normal pagination
@@ -386,6 +407,39 @@ export async function GET(
         const productSizeStr = String(productSize).toLowerCase()
         return sizeFilters.some((filter: string) =>
           productSizeStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (frameMaterialFilters && frameMaterialFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productFrameMaterial = product.metadata?.frame_material || product.metadata?.["frame material"]
+        if (!productFrameMaterial) return false
+        const productFrameMaterialStr = String(productFrameMaterial).toLowerCase()
+        return frameMaterialFilters.some((filter: string) =>
+          productFrameMaterialStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (shapeFilterFilters && shapeFilterFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productShapeFilter = product.metadata?.shape_filter || product.metadata?.["shape filter"]
+        if (!productShapeFilter) return false
+        const productShapeFilterStr = String(productShapeFilter).toLowerCase()
+        return shapeFilterFilters.some((filter: string) =>
+          productShapeFilterStr === filter.toLowerCase()
+        )
+      })
+    }
+
+    if (shapeFilters && shapeFilters.length > 0) {
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const productShape = product.metadata?.shape
+        if (!productShape) return false
+        const productShapeStr = String(productShape).toLowerCase()
+        return shapeFilters.some((filter: string) =>
+          productShapeStr === filter.toLowerCase()
         )
       })
     }
@@ -698,6 +752,9 @@ export async function GET(
       const genders = new Set<string>()
       const shapes = new Set<string>()
       const sizes = new Set<string>()
+      const frameMaterials = new Set<string>()
+      const shapeFilters = new Set<string>()
+      const shapeValues = new Set<string>()
 
       filteredProducts.forEach((product: any) => {
         // Collect brands
@@ -745,6 +802,21 @@ export async function GET(
           if (size) {
             sizes.add(String(size))
           }
+
+          const frameMaterial = product.metadata.frame_material || product.metadata["frame material"]
+          if (frameMaterial) {
+            frameMaterials.add(String(frameMaterial))
+          }
+
+          const shapeFilter = product.metadata.shape_filter || product.metadata["shape filter"]
+          if (shapeFilter) {
+            shapeFilters.add(String(shapeFilter))
+          }
+
+          const shapeValue = product.metadata.shape
+          if (shapeValue) {
+            shapeValues.add(String(shapeValue))
+          }
         }
       })
 
@@ -755,6 +827,9 @@ export async function GET(
         genders: Array.from(genders).sort(),
         shapes: Array.from(shapes).sort(),
         sizes: Array.from(sizes).sort(),
+        frame_materials: Array.from(frameMaterials).sort(),
+        shape_filters: Array.from(shapeFilters).sort(),
+        shape_values: Array.from(shapeValues).sort(),
       }
     }
 
