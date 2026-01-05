@@ -25,13 +25,13 @@ services:
     container_name: luxuriousonly-backend
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://medusa:medusa_password@postgres:5432/medusa_db
-      STORE_CORS: http://localhost:8000,http://frontend:8000
-      ADMIN_CORS: http://localhost:7001,http://localhost:9000
-      AUTH_CORS: http://localhost:8000,http://frontend:8000
-      JWT_SECRET: ${JWT_SECRET:-supersecret}
-      COOKIE_SECRET: ${COOKIE_SECRET:-supersecret}
-      BACKEND_URL: http://backend:9000
+      DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
+      STORE_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com
+      ADMIN_CORS: http://localhost:7001,http://localhost:9000,https://admin.luxuriousonly.com
+      AUTH_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com
+      JWT_SECRET: e3a7f1d9b4c2a9e6f8c0d1a4b7c3e9f2a6b8d0c1e4f7a9b3c5d6e2f1a8
+      COOKIE_SECRET: e3a7f1d9b4c2a9e6f8c0d1a4b7c3e9f2a6b8d0c1e4f7a9b3c5d6e2f1a8
+      BACKEND_URL: https://admin.luxuriousonly.com
     ports:
       - "9000:9000"
     depends_on:
@@ -58,18 +58,18 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-docker-build-placeholder}
-        NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
-        NEXT_PUBLIC_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
+        NEXT_PUBLIC_BASE_URL: https://luxuriousonly.com
     container_name: luxuriousonly-frontend
     environment:
       NODE_ENV: production
       # Server-side backend URL (for internal Docker network)
-      MEDUSA_BACKEND_URL: http://backend:9000
+      MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
       # Client-side backend URL (for browser access)
-      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
-      NEXT_PUBLIC_BASE_URL: http://localhost:8000
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
+      NEXT_PUBLIC_BASE_URL: https://luxuriousonly.com
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
     ports:
       - "8000:8000"
     depends_on:
