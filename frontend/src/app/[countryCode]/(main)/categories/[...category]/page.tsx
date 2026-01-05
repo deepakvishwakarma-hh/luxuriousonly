@@ -27,30 +27,38 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  const product_categories = await listCategories()
+  try {
+    const product_categories = await listCategories()
 
-  if (!product_categories) {
+    if (!product_categories) {
+      return []
+    }
+
+    const countryCodes = await listRegions().then((regions: StoreRegion[]) =>
+      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
+    )
+
+    const categoryHandles = product_categories.map(
+      (category: any) => category.handle
+    )
+
+    const staticParams = countryCodes
+      ?.map((countryCode: string | undefined) =>
+        categoryHandles.map((handle: any) => ({
+          countryCode,
+          category: [handle],
+        }))
+      )
+      .flat()
+
+    return staticParams || []
+  } catch (error) {
+    // During Docker build, backend may not be available
+    // Return empty array to allow build to succeed
+    // Pages will be generated dynamically at runtime
+    console.warn("Failed to generate static params during build:", error)
     return []
   }
-
-  const countryCodes = await listRegions().then((regions: StoreRegion[]) =>
-    regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
-  )
-
-  const categoryHandles = product_categories.map(
-    (category: any) => category.handle
-  )
-
-  const staticParams = countryCodes
-    ?.map((countryCode: string | undefined) =>
-      categoryHandles.map((handle: any) => ({
-        countryCode,
-        category: [handle],
-      }))
-    )
-    .flat()
-
-  return staticParams
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -59,10 +67,12 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const region = await getRegion(countryCode)
   const companyName = websiteConfig.name || websiteConfig.displayName
   const baseURL = getBaseURL()
-  
+
   try {
     const productCategory = await getCategoryByHandle(category)
-    const categoryUrl = `${baseURL}/${countryCode}/categories/${category.join("/")}`
+    const categoryUrl = `${baseURL}/${countryCode}/categories/${category.join(
+      "/"
+    )}`
 
     const countryName =
       region?.countries?.find((c) => c.iso_2 === countryCode)?.display_name ||
@@ -204,7 +214,9 @@ export default async function Category(props: Props) {
 
   // Build structured data for SEO (JSON-LD)
   const baseURL = getBaseURL()
-  const categoryUrl = `${baseURL}/${countryCode}/categories/${category.join("/")}`
+  const categoryUrl = `${baseURL}/${countryCode}/categories/${category.join(
+    "/"
+  )}`
 
   // Breadcrumb structured data
   const breadcrumbStructuredData = {
