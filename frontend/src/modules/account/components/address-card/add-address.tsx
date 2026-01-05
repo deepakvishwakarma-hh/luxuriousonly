@@ -12,6 +12,9 @@ import { SubmitButton } from "@modules/checkout/components/submit-button"
 import { HttpTypes } from "@medusajs/types"
 import { addCustomerAddress } from "@lib/data/customer"
 
+
+
+
 const AddAddress = ({
   region,
   addresses,
@@ -19,6 +22,11 @@ const AddAddress = ({
   region: HttpTypes.StoreRegion
   addresses: HttpTypes.StoreCustomerAddress[]
 }) => {
+
+  const [city, setCity] = useState("")
+  const [stateName, setStateName] = useState("")
+  const [countryCode, setCountryCode] = useState("")
+
   const [successState, setSuccessState] = useState(false)
   const { state, open, close: closeModal } = useToggleState(false)
 
@@ -45,6 +53,62 @@ const AddAddress = ({
       setSuccessState(true)
     }
   }, [formState])
+
+
+
+  const handlePostalCode = async (postalCode: string) => {
+    if (!postalCode || postalCode.trim().length < 2) return
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      console.warn("Google Maps API key is not set")
+      return
+    }
+
+    try {
+      // Prefer using components when we have a country for better accuracy
+      let query = ""
+      if (countryCode) {
+        const cc = countryCode.toUpperCase()
+        query = `components=postal_code:${encodeURIComponent(postalCode)}|country:${encodeURIComponent(cc)}`
+      } else {
+        query = `address=${encodeURIComponent(postalCode)}`
+      }
+
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?${query}&key=${apiKey}`
+      )
+
+      const data = await res.json()
+
+      if (!data || data.status !== "OK" || !data.results || data.results.length === 0) return
+
+      const addressComponents = data.results[0].address_components || []
+
+      const findByTypes = (types: string[]) =>
+        addressComponents.find((c: any) => types.some((t) => c.types.includes(t)))
+
+      // City: try several fallbacks for different country conventions
+      const cityComp = findByTypes([
+        "locality",
+        "postal_town",
+        "sublocality",
+        "administrative_area_level_2",
+      ])
+
+      const stateComp = findByTypes(["administrative_area_level_1"]) || null
+      const countryComp = findByTypes(["country"]) || null
+
+      if (cityComp) setCity(cityComp.long_name || "")
+
+      // For state prefer short_name (e.g., CA) but fall back to long_name
+      if (stateComp) setStateName(stateComp.short_name || stateComp.long_name || "")
+
+      if (countryComp) setCountryCode((countryComp.short_name || countryComp.long_name).toUpperCase())
+    } catch (error) {
+      console.error("Postal lookup failed", error)
+    }
+  }
 
   return (
     <>
@@ -106,28 +170,39 @@ const AddAddress = ({
                   required
                   autoComplete="postal-code"
                   data-testid="postal-code-input"
+                  onBlur={(e) => handlePostalCode(e.target.value)}
                 />
+
                 <Input
                   label="City"
                   name="city"
                   required
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
                   autoComplete="locality"
                   data-testid="city-input"
                 />
+
               </div>
               <Input
                 label="Province / State"
                 name="province"
+                value={stateName}
+                onChange={(e) => setStateName(e.target.value)}
                 autoComplete="address-level1"
                 data-testid="state-input"
               />
+
               <CountrySelect
                 region={region}
                 name="country_code"
                 required
+                value={countryCode}
+                onChange={(e) => setCountryCode((e.target as HTMLSelectElement).value)}
                 autoComplete="country"
                 data-testid="country-select"
               />
+
               <Input
                 label="Phone"
                 name="phone"

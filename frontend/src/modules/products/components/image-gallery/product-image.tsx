@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useRef, useEffect, type MouseEvent } from "react"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Pagination } from "swiper/modules"
 import Lightbox from "yet-another-react-lightbox"
@@ -25,6 +25,34 @@ export default function ProductImageCarousel({
 }: ProductImageCarouselProps) {
   const [activeImage, setActiveImage] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [origin, setOrigin] = useState({ x: 50, y: 50 })
+  const rafRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      setOrigin({ x, y })
+    })
+  }
+
+  useEffect(() => {
+    // reset zoom when active image changes
+    setIsZoomed(false)
+  }, [activeImage])
 
   if (!images || images.length === 0) {
     return (
@@ -91,7 +119,14 @@ export default function ProductImageCarousel({
         </div>
 
         {/* Main Image */}
-        <div className="relative aspect-square bg-white rounded">
+        <div
+          className={`relative aspect-square bg-white rounded overflow-hidden ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+          ref={containerRef}
+          onMouseMove={onMouseMove}
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+        >
+          
           <Image
             src={images[activeImage]}
             alt={productTitle}
@@ -99,6 +134,30 @@ export default function ProductImageCarousel({
             className="object-contain"
             priority
           />
+
+          {/* zoom overlay */}
+          <div
+            className={`absolute inset-0 pointer-events-none hidden md:block transition-opacity duration-150 ${isZoomed ? "opacity-100" : "opacity-0"}`}
+            aria-hidden
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                transformOrigin: `${origin.x}% ${origin.y}%`,
+                transform: isZoomed ? "scale(2)" : "scale(1)",
+                transition: isZoomed ? "transform 0s" : "transform 150ms",
+                willChange: "transform",
+              }}
+            >
+              <Image
+                src={images[activeImage]}
+                alt={productTitle}
+                fill
+                className="object-cover"
+                priority={isZoomed}
+              />
+            </div>
+          </div>
 
           <button
             className="absolute top-3 left-3 z-20 w-10 h-10 rounded-full border-2 border-black bg-white flex items-center justify-center"

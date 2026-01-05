@@ -30,7 +30,7 @@ export default async function Orders() {
       <div>
         <OrderOverview orders={orders} />
         <Divider className="my-16" />
-        <TransferRequestForm />
+        {/* <TransferRequestForm /> */}
       </div>
     </div>
   )
