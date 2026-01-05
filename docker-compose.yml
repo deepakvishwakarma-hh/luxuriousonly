@@ -27,9 +27,9 @@ services:
       NODE_ENV: production
       MEDUSA_ADMIN_ONBOARDING_TYPE: default
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
-      STORE_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com
+      STORE_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com,https://luxuriousonly.com
       ADMIN_CORS: http://localhost:7001,http://localhost:9000,https://admin.luxuriousonly.com
-      AUTH_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com
+      AUTH_CORS: http://localhost:7001,http://localhost:9000,http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com,https://luxuriousonly.com
       JWT_SECRET: e3a7f1d9b4c2a9e6f8c0d1a4b7c3e9f2a6b8d0c1e4f7a9b3c5d6e2f1a8
       COOKIE_SECRET: e3a7f1d9b4c2a9e6f8c0d1a4b7c3e9f2a6b8d0c1e4f7a9b3c5d6e2f1a8
       VITE_BACKEND_URL: https://admin.luxuriousonly.com
