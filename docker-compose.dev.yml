@@ -25,6 +25,7 @@ services:
     container_name: luxuriousonly-backend-dev
     environment:
       NODE_ENV: development
+      HOST: 0.0.0.0
       DATABASE_URL: postgres://medusa:medusa_password@postgres:5432/medusa_db
       STORE_CORS: http://localhost:8000,http://frontend:8000
       ADMIN_CORS: http://localhost:7001,http://localhost:9000

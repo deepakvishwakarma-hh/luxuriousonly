@@ -26,6 +26,7 @@ services:
     environment:
       NODE_ENV: development
       MEDUSA_ADMIN_ONBOARDING_TYPE: default
+      HOST: 0.0.0.0
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
       STORE_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com,https://luxuriousonly.com
       ADMIN_CORS: http://localhost:7001,http://localhost:9000,https://admin.luxuriousonly.com

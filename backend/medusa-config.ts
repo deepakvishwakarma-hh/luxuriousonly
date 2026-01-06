@@ -18,7 +18,7 @@ module.exports = defineConfig({
     vite(config) {
       config.server.allowedHosts = [
         ...(config.server.allowedHosts || []),
-        process.env.BACKEND_URL,
+        'luxuriousonly.com',
       ];
     }
   },
