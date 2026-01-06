@@ -13,6 +13,12 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
   },
+  admin: {
+    vite(config) {
+      config.server.allowedHosts = ["admin.luxuriousonly.com"];
+      return config;
+    },
+  },
   modules: [
     {
       resolve: "./src/modules/review",
