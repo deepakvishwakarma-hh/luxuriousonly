@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     container_name: luxuriousonly-backend
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       MEDUSA_ADMIN_ONBOARDING_TYPE: default
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
       STORE_CORS: http://localhost:8000,http://frontend:8000,https://admin.luxuriousonly.com,https://luxuriousonly.com
