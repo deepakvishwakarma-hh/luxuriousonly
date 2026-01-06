@@ -19,6 +19,7 @@ module.exports = defineConfig({
       config.server.allowedHosts = [
         ...(config.server.allowedHosts || []),
         'luxuriousonly.com',
+        'admin.luxuriousonly.com',
       ];
     }
   },
