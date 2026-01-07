@@ -25,7 +25,7 @@ services:
     container_name: luxuriousonly-backend
     environment:
       PORT: 9000
-      NODE_ENV: development
+      NODE_ENV: production
       MEDUSA_ADMIN_ONBOARDING_TYPE: default
       HOST: 0.0.0.0
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
@@ -36,6 +36,7 @@ services:
       COOKIE_SECRET: supersecret
       VITE_BACKEND_URL: https://admin.luxuriousonly.com
       BACKEND_URL: https://admin.luxuriousonly.com
+      VITE_SERVER_ALLOWED_HOSTS: admin.luxuriousonly.com
       SMTP_HOST: smtp.zeptomail.in
       SMTP_PORT: 587
       SMTP_USER: emailapikey
