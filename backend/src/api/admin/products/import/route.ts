@@ -397,11 +397,31 @@ async function processProductRow(
   // Get size from CSV
   const size = sizeIndex !== -1 ? row[sizeIndex]?.trim() : "Default"
 
-  // Get prices (convert to cents)
-  // Get base USD price from CSV
-  const salePrice = salePriceIndex !== -1 ? parseFloat(row[salePriceIndex]?.trim() || "0") : 0
-  const regularPrice = regularPriceIndex !== -1 ? parseFloat(row[regularPriceIndex]?.trim() || "0") : salePrice || 0
+  // Get prices from CSV - prices in CSV are in dollars (e.g., 70 = $70.00)
+  // Store prices in dollars (do NOT convert to cents)
+  const salePriceRaw = salePriceIndex !== -1 ? row[salePriceIndex]?.trim() || "0" : "0"
+  const regularPriceRaw = regularPriceIndex !== -1 ? row[regularPriceIndex]?.trim() || "0" : salePriceRaw
+
+  // Parse prices - ensure we're treating them as dollars, not cents
+  let salePrice = parseFloat(salePriceRaw) || 0
+  let regularPrice = parseFloat(regularPriceRaw) || salePrice || 0
+
+  // Safety check: if price seems too large (likely already in cents), divide by 100
+  // This handles cases where CSV might have prices in cents instead of dollars
+  // Threshold: if price > 10000, it's likely already in cents (e.g., 70000 = $700.00)
+  // But we also check if it's divisible by 100 to avoid false positives
+  if (salePrice > 10000 && salePrice % 100 === 0) {
+    console.warn(`Warning: sale_price (${salePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${salePrice / 100}`)
+    salePrice = salePrice / 100
+  }
+  if (regularPrice > 10000 && regularPrice % 100 === 0 && regularPrice !== salePrice) {
+    console.warn(`Warning: regular_price (${regularPrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${regularPrice / 100}`)
+    regularPrice = regularPrice / 100
+  }
+
   const usdPrice = salePrice > 0 ? salePrice : regularPrice
+
+  console.log(`Price parsing - sale_price raw: "${salePriceRaw}", parsed: ${salePrice}, regular_price raw: "${regularPriceRaw}", parsed: ${regularPrice}, final USD price: ${usdPrice}`)
 
   // Build prices array for all supported currencies with automatic conversion
   const prices: Array<{ amount: number; currency_code: string }> = []
@@ -410,8 +430,11 @@ async function processProductRow(
     for (const currencyCode of supportedCurrencies) {
       // Convert USD price to target currency
       const convertedPrice = convertCurrency(usdPrice, currencyCode)
-      // Convert to cents (smallest currency unit)
-      const priceAmount = Math.round(convertedPrice * 100)
+      // Store price directly in dollars (do NOT multiply by 100)
+      // usdPrice is in dollars (e.g., 70), store as 70 (not 7000)
+      const priceAmount = Math.round(convertedPrice * 100) / 100 // Round to 2 decimal places
+
+      console.log(`  Converting ${usdPrice} USD to ${currencyCode}: ${convertedPrice} -> ${priceAmount} (stored as dollars, not cents)`)
 
       if (priceAmount > 0) {
         prices.push({
@@ -420,6 +443,7 @@ async function processProductRow(
         })
       }
     }
+    console.log(`Final prices for variant:`, JSON.stringify(prices, null, 2))
   }
 
   // Build main variant for the product
@@ -441,8 +465,23 @@ async function processProductRow(
     const variantRow = variantRowData.row
     const variantSku = skuIndex !== -1 ? variantRow[skuIndex]?.trim() : undefined
     const variantSize = sizeIndex !== -1 ? variantRow[sizeIndex]?.trim() : "Default"
-    const variantSalePrice = salePriceIndex !== -1 ? parseFloat(variantRow[salePriceIndex]?.trim() || "0") : 0
-    const variantRegularPrice = regularPriceIndex !== -1 ? parseFloat(variantRow[regularPriceIndex]?.trim() || "0") : variantSalePrice || 0
+    // Parse variant prices - same logic as main variant
+    const variantSalePriceRaw = salePriceIndex !== -1 ? variantRow[salePriceIndex]?.trim() || "0" : "0"
+    const variantRegularPriceRaw = regularPriceIndex !== -1 ? variantRow[regularPriceIndex]?.trim() || "0" : variantSalePriceRaw
+    let variantSalePrice = parseFloat(variantSalePriceRaw) || 0
+    let variantRegularPrice = parseFloat(variantRegularPriceRaw) || variantSalePrice || 0
+
+    // Safety check: if price seems too large (likely already in cents), divide by 100
+    // Threshold: if price > 10000 and divisible by 100, it's likely already in cents
+    if (variantSalePrice > 10000 && variantSalePrice % 100 === 0) {
+      console.warn(`Warning: variant sale_price (${variantSalePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${variantSalePrice / 100}`)
+      variantSalePrice = variantSalePrice / 100
+    }
+    if (variantRegularPrice > 10000 && variantRegularPrice % 100 === 0 && variantRegularPrice !== variantSalePrice) {
+      console.warn(`Warning: variant regular_price (${variantRegularPrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${variantRegularPrice / 100}`)
+      variantRegularPrice = variantRegularPrice / 100
+    }
+
     const variantUsdPrice = variantSalePrice > 0 ? variantSalePrice : variantRegularPrice
 
     // Build prices array for variant with automatic currency conversion
@@ -452,8 +491,8 @@ async function processProductRow(
       for (const currencyCode of supportedCurrencies) {
         // Convert USD price to target currency
         const convertedPrice = convertCurrency(variantUsdPrice, currencyCode)
-        // Convert to cents (smallest currency unit)
-        const variantPriceAmount = Math.round(convertedPrice * 100)
+        // Store price directly in dollars (do NOT multiply by 100)
+        const variantPriceAmount = Math.round(convertedPrice * 100) / 100 // Round to 2 decimal places
 
         if (variantPriceAmount > 0) {
           variantPrices.push({
@@ -1255,10 +1294,21 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
               const prices = variantPricesMap.get(variant.sku)!
 
               // Ensure prices array is properly formatted (same as test API)
-              const formattedPrices = prices.map((p: any) => ({
-                amount: typeof p.amount === 'number' ? p.amount : parseInt(p.amount),
-                currency_code: typeof p.currency_code === 'string' ? p.currency_code.toLowerCase() : p.currency_code,
-              }))
+              // Prices are stored in dollars (not cents), so use them directly
+              // DO NOT multiply by 100 - prices are in dollars!
+              const formattedPrices = prices.map((p: any) => {
+                // Prices are in dollars (e.g., 70 for $70.00), so use directly
+                let amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount))
+
+                console.log(`  Price for ${p.currency_code}: original amount = ${p.amount}, using amount = ${amount} (dollars, not cents)`)
+
+                return {
+                  amount: amount, // In dollars, not cents!
+                  currency_code: typeof p.currency_code === 'string' ? p.currency_code.toLowerCase() : p.currency_code,
+                }
+              })
+
+              console.log(`Formatted prices for variant ${variant.sku}:`, JSON.stringify(formattedPrices, null, 2))
 
               variantsToUpdate.push({
                 id: variant.id,
@@ -1312,7 +1362,24 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
               if (verifyData && verifyData.length > 0) {
                 const verifiedVariant = verifyData[0] as any
                 const verifiedPrices = verifiedVariant.price_set?.prices || []
-                console.log(`✓ Verified: Variant ${variantUpdate.sku} now has ${verifiedPrices.length} price(s):`, verifiedPrices.map((p: any) => `${p.currency_code}:${p.amount}`).join(", "))
+                console.log(`✓ Verified: Variant ${variantUpdate.sku} now has ${verifiedPrices.length} price(s):`, verifiedPrices.map((p: any) => `${p.currency_code}:${p.amount} ${p.currency_code.toUpperCase()}`).join(", "))
+
+                // Double-check: log what we sent vs what was stored
+                const sentPrices = variantUpdate.prices
+                console.log(`  DEBUG - Sent prices:`, JSON.stringify(sentPrices, null, 2))
+                console.log(`  DEBUG - Stored prices:`, JSON.stringify(verifiedPrices, null, 2))
+
+                // Check for any mismatch
+                for (const sentPrice of sentPrices) {
+                  const storedPrice = verifiedPrices.find((p: any) => p.currency_code.toLowerCase() === sentPrice.currency_code.toLowerCase())
+                  if (storedPrice) {
+                    if (storedPrice.amount !== sentPrice.amount) {
+                      console.warn(`  WARNING: Price mismatch for ${sentPrice.currency_code}: sent ${sentPrice.amount}, stored ${storedPrice.amount}`)
+                    } else {
+                      console.log(`  ✓ Price match for ${sentPrice.currency_code}: ${sentPrice.amount} ${sentPrice.currency_code.toUpperCase()}`)
+                    }
+                  }
+                }
               }
             }
           } catch (priceUpdateError: any) {
