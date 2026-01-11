@@ -10,6 +10,7 @@ import { useState, FormEvent, useEffect, useRef, useCallback } from "react"
 import useSWR from "swr"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { sdk } from "@lib/config"
 
 type SearchProduct = {
   id: string
@@ -24,24 +25,59 @@ type SearchResponse = {
   count: number
 }
 
-// Fetcher for search suggestions
-const searchFetcher = async (url: string): Promise<SearchResponse> => {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY && {
-        "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY,
-      }),
-    },
-    cache: "no-store",
-  })
+type SearchQuery = {
+  search: string
+  limit: number
+  offset: number
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch search results: ${response.statusText}`)
+// Fetcher for search suggestions using Medusa SDK
+const searchFetcher = async (
+  query: SearchQuery | null
+): Promise<SearchResponse> => {
+  if (!query) {
+    return { products: [], count: 0 }
   }
 
-  return response.json()
+  try {
+    const response = await sdk.client.fetch<{
+      products: any[]
+      count: number
+    }>(`/store/products/filter`, {
+      method: "GET",
+      query: {
+        search: query.search,
+        limit: query.limit,
+        offset: query.offset,
+      },
+      cache: "no-store",
+    })
+
+    // Ensure response matches expected format
+    if (!response || typeof response !== "object") {
+      console.error("[NavSearch] Invalid response format:", response)
+      return { products: [], count: 0 }
+    }
+
+    // Map products to expected format
+    const products: SearchProduct[] = (response.products || []).map(
+      (product: any) => ({
+        id: product.id || "",
+        title: product.title || "",
+        handle: product.handle || "",
+        thumbnail: product.thumbnail || null,
+        price_formatted: product.price_formatted || null,
+      })
+    )
+
+    return {
+      products,
+      count: response.count || products.length,
+    }
+  } catch (error) {
+    console.error("[NavSearch] Search fetcher error:", error)
+    throw error
+  }
 }
 
 export default function NavSearch() {
@@ -56,31 +92,38 @@ export default function NavSearch() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
-  // Build search API URL
-  const searchApiUrl =
+  // Build search query object
+  const searchQuery: SearchQuery | null =
     query.trim().length >= 2
-      ? (() => {
-          const backendUrl = process.env.MEDUSA_BACKEND_URL
-          if (!backendUrl) {
-            return null
-          }
-          const params = new URLSearchParams()
-          params.set("search", query.trim())
-          params.set("limit", "4")
-          params.set("offset", "0")
-          return `${backendUrl}/store/products/filter?${params.toString()}`
-        })()
+      ? {
+          search: query.trim(),
+          limit: 4,
+          offset: 0,
+        }
       : null
 
-  // Fetch search suggestions with debouncing
-  const { data: searchData, isLoading: isSearching } = useSWR<SearchResponse>(
-    searchApiUrl,
-    searchFetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 500,
+  // Fetch search suggestions with debouncing using Medusa SDK
+  const {
+    data: searchData,
+    isLoading: isSearching,
+    error: searchError,
+  } = useSWR<SearchResponse>(searchQuery, searchFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 500,
+  })
+
+  // Debug logging
+  useEffect(() => {
+    if (searchQuery) {
+      console.log("[NavSearch] Searching with query:", searchQuery)
     }
-  )
+    if (searchError) {
+      console.error("[NavSearch] Search error:", searchError)
+    }
+    if (searchData) {
+      console.log("[NavSearch] Search results:", searchData)
+    }
+  }, [searchQuery, searchError, searchData])
 
   // Initialize query from URL on mount or when pathname changes (but not when user is typing)
   useEffect(() => {
