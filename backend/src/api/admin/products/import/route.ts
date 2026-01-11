@@ -101,48 +101,28 @@ const REQUIRED_FIELDS = [
   "product_id",
   "type",
   "sku",
-  "gtin",
   "name",
   "subtitle",
   "description",
   "stock",
-  "weight",
-  "length",
-  "width",
-  "height",
   "sale_price",
   "regular_price",
   "categories",
-  "tags",
-  "thumbnail",
   "images",
   "brand",
   "model",
-  "color_code",
   "gender",
   "rim_style",
   "shape",
   "frame_material",
   "size",
   "lens_width",
-  "lens_height",
   "leng_bridge",
   "arm_length",
-  "department",
   "condition",
-  "days_of_delivery",
-  "max_days_of_delivery",
-  "days_of_delivery_out_of_stock",
-  "max_days_of_delivery_out_of_stock",
-  "delivery_note",
-  "disabled_days",
   "keywords",
-  "pattern",
   "age_group",
-  "multipack",
-  "is_bundle",
-  "availablity_date",
-  "adult_content",
+  "region_availability",
   "published",
 ]
 
@@ -210,9 +190,15 @@ function extractMetadata(headers: string[], row: string[]): Record<string, any> 
     const isRequiredField = REQUIRED_FIELDS.some((field) => normalizedHeader === field.toLowerCase())
 
     // Skip fields that are handled directly (name, sku, brand, model, etc.)
-    // Note: tags is NOT skipped - it will be stored in metadata instead of creating tag relations
-    const skipFields = ["name", "title", "sku", "brand", "model", "categories", "images", "thumbnail", "description", "subtitle", "images_alt", "thumbnail_alt"]
+    // Note: purchase_cost will be stored in metadata
+    const skipFields = ["name", "title", "sku", "brand", "model", "categories", "images", "description", "subtitle", "images_alt", "thumbnail_alt", "thumbnail"]
     if (skipFields.includes(normalizedHeader)) return
+
+    // Handle purchase_cost - store in metadata
+    if (normalizedHeader === "purchase_cost") {
+      metadata[header.trim()] = value
+      return
+    }
 
     if (isExtraField || (isRequiredField && !skipFields.includes(normalizedHeader))) {
       // Handle array fields
@@ -285,8 +271,6 @@ async function processProductRow(
   handleIndex: number,
   skuIndex: number,
   imagesIndex: number,
-  imagesAltIndex: number,
-  thumbnailAltIndex: number,
   categoriesIndex: number,
   brandIndex: number,
   salesChannelIdIndex: number,
@@ -302,6 +286,12 @@ async function processProductRow(
 
   // Extract metadata
   const metadata = extractMetadata(headers, row)
+
+  // Extract color_code from third word of title (name)
+  const nameWords = name.trim().split(/\s+/)
+  if (nameWords.length >= 3) {
+    metadata.color_code = nameWords[2]
+  }
 
   // Get sales channel ID from CSV or use default
   let salesChannelId = defaultSalesChannelId
@@ -337,8 +327,8 @@ async function processProductRow(
   }
 
   // Parse images from CSV (can be pipe-separated URLs or JSON array)
-  // Also supports alt text via images_alt column or within JSON objects
-  let images: Array<{ url: string; alt?: string }> = []
+  let images: Array<{ url: string }> = []
+  let thumbnail: string | undefined = undefined
   if (imagesIndex !== -1) {
     const imagesValue = row[imagesIndex]?.trim()
     if (imagesValue) {
@@ -347,13 +337,8 @@ async function processProductRow(
         const parsed = JSON.parse(imagesValue)
         if (Array.isArray(parsed)) {
           images = parsed.map((img: any) => {
-            if (typeof img === "string") {
-              return { url: img }
-            }
-            return {
-              url: img.url || img,
-              alt: img.alt || undefined
-            }
+            const url = typeof img === "string" ? img : (img.url || img)
+            return { url }
           })
         } else {
           images = [{ url: parsed }]
@@ -362,20 +347,11 @@ async function processProductRow(
         // If not JSON, treat as pipe-separated URLs (or comma-separated)
         const separator = imagesValue.includes("|") ? "|" : ","
         const urls = imagesValue.split(separator).map((url) => url.trim()).filter(Boolean)
-
-        // Check if images_alt column exists and parse alt texts
-        let altTexts: string[] = []
-        if (imagesAltIndex !== -1) {
-          const imagesAltValue = row[imagesAltIndex]?.trim()
-          if (imagesAltValue) {
-            altTexts = imagesAltValue.split(separator).map((alt) => alt.trim()).filter(Boolean)
-          }
-        }
-
-        images = urls.map((url, index) => ({
-          url,
-          alt: altTexts[index] || undefined
-        }))
+        images = urls.map((url) => ({ url }))
+      }
+      // Use first image as thumbnail
+      if (images.length > 0) {
+        thumbnail = images[0].url
       }
     }
   }
@@ -416,10 +392,6 @@ async function processProductRow(
         currency_code: "USD",
       },
     ],
-    weight: row[normalizedHeaders.findIndex((h) => h === "weight")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "weight")] || "0") : undefined,
-    length: row[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
-    width: row[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
-    height: row[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(row[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
     metadata: { ...metadata },
   }
 
@@ -437,8 +409,14 @@ async function processProductRow(
 
     const variantMetadata = extractMetadata(headers, variantRow)
 
+    // Extract color_code from third word of title for variant
+    const variantNameWords = name.trim().split(/\s+/)
+    if (variantNameWords.length >= 3) {
+      variantMetadata.color_code = variantNameWords[2]
+    }
+
     // Parse variant images from CSV
-    let variantImages: Array<{ url: string; alt?: string }> = []
+    let variantImages: Array<{ url: string }> = []
     if (imagesIndex !== -1) {
       const variantImagesValue = variantRow[imagesIndex]?.trim()
       if (variantImagesValue) {
@@ -446,13 +424,8 @@ async function processProductRow(
           const parsed = JSON.parse(variantImagesValue)
           if (Array.isArray(parsed)) {
             variantImages = parsed.map((img: any) => {
-              if (typeof img === "string") {
-                return { url: img }
-              }
-              return {
-                url: img.url || img,
-                alt: img.alt || undefined
-              }
+              const url = typeof img === "string" ? img : (img.url || img)
+              return { url }
             })
           } else {
             variantImages = [{ url: parsed }]
@@ -460,20 +433,7 @@ async function processProductRow(
         } catch {
           const separator = variantImagesValue.includes("|") ? "|" : ","
           const urls = variantImagesValue.split(separator).map((url) => url.trim()).filter(Boolean)
-
-          // Check if images_alt column exists and parse alt texts
-          let variantAltTexts: string[] = []
-          if (imagesAltIndex !== -1) {
-            const variantImagesAltValue = variantRow[imagesAltIndex]?.trim()
-            if (variantImagesAltValue) {
-              variantAltTexts = variantImagesAltValue.split(separator).map((alt) => alt.trim()).filter(Boolean)
-            }
-          }
-
-          variantImages = urls.map((url, index) => ({
-            url,
-            alt: variantAltTexts[index] || undefined
-          }))
+          variantImages = urls.map((url) => ({ url }))
         }
       }
     }
@@ -485,6 +445,10 @@ async function processProductRow(
         if (!images.some((img) => img.url === imageUrl)) {
           images.push(variantImage)
         }
+      }
+      // Update thumbnail if not set yet
+      if (!thumbnail && variantImages.length > 0) {
+        thumbnail = variantImages[0].url
       }
     }
 
@@ -500,10 +464,6 @@ async function processProductRow(
           currency_code: "USD",
         },
       ],
-      weight: variantRow[normalizedHeaders.findIndex((h) => h === "weight")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "weight")] || "0") : undefined,
-      length: variantRow[normalizedHeaders.findIndex((h) => h === "length")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "length")] || "0") : undefined,
-      width: variantRow[normalizedHeaders.findIndex((h) => h === "width")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "width")] || "0") : undefined,
-      height: variantRow[normalizedHeaders.findIndex((h) => h === "height")] ? parseFloat(variantRow[normalizedHeaders.findIndex((h) => h === "height")] || "0") : undefined,
       metadata: { ...variantMetadata },
     }
 
@@ -540,15 +500,6 @@ async function processProductRow(
     }
   }
 
-  // Get thumbnail alt text
-  let thumbnailAlt: string | undefined = undefined
-  if (thumbnailAltIndex !== -1) {
-    const thumbnailAltValue = row[thumbnailAltIndex]?.trim()
-    if (thumbnailAltValue) {
-      thumbnailAlt = thumbnailAltValue
-    }
-  }
-
   // Build product data
   const productData: any = {
     title: name,
@@ -556,12 +507,11 @@ async function processProductRow(
     handle: handleIndex !== -1 ? row[handleIndex]?.trim() : undefined,
     status: productStatus,
     subtitle: row[normalizedHeaders.findIndex((h) => h === "subtitle")] || "",
-    thumbnail: row[normalizedHeaders.findIndex((h) => h === "thumbnail")] || "",
+    thumbnail: thumbnail || "",
     images: images.length > 0 ? images : undefined,
     category_ids: categoryIds.length > 0 ? categoryIds : undefined,
     metadata: {
       ...metadata,
-      ...(thumbnailAlt && { thumbnail_alt: thumbnailAlt }),
     },
     sales_channels: salesChannelId ? [{ id: salesChannelId }] : [],
     options: [
@@ -625,8 +575,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const handleIndex = normalizedHeaders.findIndex((h) => h === "handle")
     const skuIndex = normalizedHeaders.findIndex((h) => h === "sku")
     const imagesIndex = normalizedHeaders.findIndex((h) => h === "images" || h === "image")
-    const imagesAltIndex = normalizedHeaders.findIndex((h) => h === "images_alt" || h === "image_alt")
-    const thumbnailAltIndex = normalizedHeaders.findIndex((h) => h === "thumbnail_alt" || h === "thumb_alt")
     const categoriesIndex = normalizedHeaders.findIndex((h) => h === "categories" || h === "category")
     const salesChannelIdIndex = normalizedHeaders.findIndex((h) => h === "sales_channel_id" || h === "sales channel id")
     const locationIdIndex = normalizedHeaders.findIndex((h) => h === "location_id" || h === "location id")
@@ -836,8 +784,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           handleIndex,
           skuIndex,
           imagesIndex,
-          imagesAltIndex,
-          thumbnailAltIndex,
           categoriesIndex,
           brandIndex,
           salesChannelIdIndex,

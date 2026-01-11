@@ -155,9 +155,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "updated_at",
         "images.*",
         "categories.*",
-        "variants.*",
-        "variants.inventory_items.inventory_item.location_levels.location_id",
-        "variants.inventory_items.inventory_item.location_levels.stocked_quantity",
+        "variants.id",
+        "variants.sku",
         "sales_channels_link.sales_channel_id",
         "sales_channels.id",
       ],
@@ -175,6 +174,31 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     } = await query.graph(queryConfig)
 
     // CSV Headers - Base fields + SKU + Images + All extra fields + Sales Channel ID + Location ID + Stock (no variant fields)
+    // Filter out unwanted fields from ALL_EXTRA_FIELDS
+    const excludedFields = [
+      "gtin",
+      "weight",
+      "length",
+      "width",
+      "height",
+      "tags",
+      "thumbnail",
+      "lens_height",
+      "department",
+      "days_of_delivery",
+      "max_days_of_delivery",
+      "days_of_delivery_out_of_stock",
+      "max_days_of_delivery_out_of_stock",
+      "delivery_note",
+      "disabled_days",
+      "pattern",
+      "multipack",
+      "is_bundle",
+      "availablity_date",
+      "adult_content",
+    ]
+    const filteredExtraFields = ALL_EXTRA_FIELDS.filter((field) => !excludedFields.includes(field))
+
     const headers = [
       "product_id",
       "Title",
@@ -183,15 +207,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "SKU",
       "Status",
       "Subtitle",
-      "Thumbnail",
-      "Thumbnail Alt",
       "Images",
-      "Images Alt",
       "Categories",
       "sales_channel_id",
       "location_id",
       "stock",
-      ...ALL_EXTRA_FIELDS,
+      "purchase_cost",
+      ...filteredExtraFields,
       "Created At",
       "Updated At",
     ]
@@ -219,26 +241,47 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         const firstVariant = product.variants[0]
         sku = firstVariant.sku || ""
 
-        // Extract location_id and stock from first variant's inventory
-        if ((firstVariant as any).inventory_items?.[0]?.inventory_item?.location_levels?.[0]) {
-          const locationLevel = (firstVariant as any).inventory_items[0].inventory_item.location_levels[0]
-          locationId = locationLevel.location_id || ""
-          stock = locationLevel.stocked_quantity?.toString() || "0"
+        // Query inventory levels separately for the first variant
+        if (firstVariant.id) {
+          try {
+            // Query inventory item link
+            const { data: variantLinks } = await query.graph({
+              entity: "link_product_variant_inventory_item",
+              fields: ["inventory_item_id"],
+              filters: {
+                variant_id: firstVariant.id,
+              },
+            })
+
+            if (variantLinks && variantLinks.length > 0) {
+              const inventoryItemId = (variantLinks[0] as any).inventory_item_id
+
+              // Query inventory levels for this item
+              const { data: inventoryLevels } = await query.graph({
+                entity: "inventory_level",
+                fields: ["location_id", "stocked_quantity"],
+                filters: {
+                  inventory_item_id: inventoryItemId,
+                },
+              })
+
+              if (inventoryLevels && inventoryLevels.length > 0) {
+                const firstLevel = inventoryLevels[0] as any
+                locationId = firstLevel.location_id || ""
+                stock = firstLevel.stocked_quantity?.toString() || "0"
+              }
+            }
+          } catch (inventoryError) {
+            // If inventory query fails, just continue with empty values
+            console.warn(`Failed to query inventory for variant ${firstVariant.id}:`, inventoryError)
+          }
         }
       }
 
-      // Extract images (comma-separated URLs) and alt texts
+      // Extract images (comma-separated URLs) - use first image as thumbnail
       let imagesValue = ""
-      let imagesAltValue = ""
       if (product.images && Array.isArray(product.images) && product.images.length > 0) {
         imagesValue = product.images.map((img: any) => img.url || "").filter(Boolean).join(",")
-        imagesAltValue = product.images.map((img: any) => img.alt || "").filter(Boolean).join(",")
-      }
-
-      // Extract thumbnail alt text from metadata
-      let thumbnailAltValue = ""
-      if (metadata.thumbnail_alt) {
-        thumbnailAltValue = String(metadata.thumbnail_alt)
       }
 
       // Extract categories (comma-separated names)
@@ -246,6 +289,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       if (product.categories && Array.isArray(product.categories) && product.categories.length > 0) {
         categoriesValue = product.categories.map((cat: any) => cat.name || "").filter(Boolean).join(",")
       }
+
+      // Extract purchase_cost from metadata
+      const purchaseCost = getMetadataValue(metadata, "purchase_cost") || ""
 
       // Create one row per product (variants are handled automatically)
       const row = [
@@ -256,16 +302,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         sku,
         product.status || "",
         product.subtitle || "",
-        product.thumbnail || "",
-        thumbnailAltValue,
         imagesValue,
-        imagesAltValue,
         categoriesValue,
         salesChannelId,
         locationId,
         stock,
-        // Add all extra fields from metadata
-        ...ALL_EXTRA_FIELDS.map((field) => {
+        purchaseCost,
+        // Add filtered extra fields from metadata
+        ...filteredExtraFields.map((field) => {
           const value = getMetadataValue(metadata, field)
           
           // Special handling for region_availability - always return as comma-separated string
