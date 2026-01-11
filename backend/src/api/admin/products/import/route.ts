@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { batchProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
+import { batchProductsWorkflow, createInventoryLevelsWorkflow, updateProductsWorkflow } from "@medusajs/medusa/core-flows"
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { BRAND_MODULE } from "../../../../modules/brand"
 
@@ -231,6 +231,22 @@ function extractMetadata(headers: string[], row: string[]): Record<string, any> 
   return metadata
 }
 
+// Currency exchange rates (USD as base)
+// These rates can be updated or fetched from an API if needed
+const EXCHANGE_RATES: Record<string, number> = {
+  USD: 1.0,      // Base currency
+  EUR: 0.92,     // 1 USD = 0.92 EUR
+  GBP: 0.79,     // 1 USD = 0.79 GBP
+  INR: 83.0,     // 1 USD = 83.0 INR
+  // Add more currencies as needed
+}
+
+// Convert USD price to target currency
+function convertCurrency(usdAmount: number, targetCurrency: string): number {
+  const rate = EXCHANGE_RATES[targetCurrency.toUpperCase()] || 1.0
+  return usdAmount * rate
+}
+
 // Group products by name (same name = same product, different sizes = variants)
 function groupProductsByName(
   products: Array<{ name: string; rowIndex: number; data: any }>
@@ -280,7 +296,8 @@ async function processProductRow(
   regularPriceIndex: number,
   publishedIndex: number,
   sizeIndex: number,
-  variantRows: any[] = []
+  variantRows: any[] = [],
+  supportedCurrencies: string[] = ["USD"]
 ): Promise<{ productData: any; locationStock: { locationId: string; stock: number; sku?: string }; brandId?: string } | null> {
   const { sku, name } = rowData
 
@@ -375,9 +392,29 @@ async function processProductRow(
   const size = sizeIndex !== -1 ? row[sizeIndex]?.trim() : "Default"
 
   // Get prices (convert to cents)
+  // Get base USD price from CSV
   const salePrice = salePriceIndex !== -1 ? parseFloat(row[salePriceIndex]?.trim() || "0") : 0
   const regularPrice = regularPriceIndex !== -1 ? parseFloat(row[regularPriceIndex]?.trim() || "0") : salePrice || 0
-  const priceAmount = salePrice > 0 ? Math.round(salePrice * 100) : Math.round(regularPrice * 100)
+  const usdPrice = salePrice > 0 ? salePrice : regularPrice
+
+  // Build prices array for all supported currencies with automatic conversion
+  const prices: Array<{ amount: number; currency_code: string }> = []
+
+  if (usdPrice > 0) {
+    for (const currencyCode of supportedCurrencies) {
+      // Convert USD price to target currency
+      const convertedPrice = convertCurrency(usdPrice, currencyCode)
+      // Convert to cents (smallest currency unit)
+      const priceAmount = Math.round(convertedPrice * 100)
+
+      if (priceAmount > 0) {
+        prices.push({
+          amount: priceAmount,
+          currency_code: currencyCode,
+        })
+      }
+    }
+  }
 
   // Build main variant for the product
   const mainVariant: any = {
@@ -386,12 +423,7 @@ async function processProductRow(
     options: {
       Size: size || "Default",
     },
-    prices: [
-      {
-        amount: priceAmount,
-        currency_code: "USD",
-      },
-    ],
+    prices: prices,
     metadata: { ...metadata },
   }
 
@@ -405,7 +437,26 @@ async function processProductRow(
     const variantSize = sizeIndex !== -1 ? variantRow[sizeIndex]?.trim() : "Default"
     const variantSalePrice = salePriceIndex !== -1 ? parseFloat(variantRow[salePriceIndex]?.trim() || "0") : 0
     const variantRegularPrice = regularPriceIndex !== -1 ? parseFloat(variantRow[regularPriceIndex]?.trim() || "0") : variantSalePrice || 0
-    const variantPriceAmount = variantSalePrice > 0 ? Math.round(variantSalePrice * 100) : Math.round(variantRegularPrice * 100)
+    const variantUsdPrice = variantSalePrice > 0 ? variantSalePrice : variantRegularPrice
+
+    // Build prices array for variant with automatic currency conversion
+    const variantPrices: Array<{ amount: number; currency_code: string }> = []
+
+    if (variantUsdPrice > 0) {
+      for (const currencyCode of supportedCurrencies) {
+        // Convert USD price to target currency
+        const convertedPrice = convertCurrency(variantUsdPrice, currencyCode)
+        // Convert to cents (smallest currency unit)
+        const variantPriceAmount = Math.round(convertedPrice * 100)
+
+        if (variantPriceAmount > 0) {
+          variantPrices.push({
+            amount: variantPriceAmount,
+            currency_code: currencyCode,
+          })
+        }
+      }
+    }
 
     const variantMetadata = extractMetadata(headers, variantRow)
 
@@ -458,12 +509,7 @@ async function processProductRow(
       options: {
         Size: variantSize || "Default",
       },
-      prices: [
-        {
-          amount: variantPriceAmount,
-          currency_code: "USD",
-        },
-      ],
+      prices: variantPrices,
       metadata: { ...variantMetadata },
     }
 
@@ -612,8 +658,52 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       })
     }
 
-    // Query all categories for name-based lookup
+    // Resolve query service for later use
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+    // Query store to get supported currencies
+    const storeModuleService = req.scope.resolve(Modules.STORE)
+    const stores = await storeModuleService.listStores({})
+    const store = stores && stores.length > 0 ? stores[0] : null
+
+    // Get supported currencies from store
+    const supportedCurrencies = new Set<string>()
+    if (store && store.supported_currencies && Array.isArray(store.supported_currencies)) {
+      store.supported_currencies.forEach((currency: any) => {
+        if (currency && currency.currency_code) {
+          supportedCurrencies.add(currency.currency_code.toUpperCase())
+        }
+      })
+    }
+
+    // If no store currencies found, query regions as fallback
+    if (supportedCurrencies.size === 0) {
+      const { data: allRegions } = await query.graph({
+        entity: "region",
+        fields: ["currency_code"],
+      })
+
+      if (allRegions && allRegions.length > 0) {
+        allRegions.forEach((region: any) => {
+          if (region.currency_code) {
+            supportedCurrencies.add(region.currency_code.toUpperCase())
+          }
+        })
+      }
+    }
+
+    // Always include USD as fallback if no currencies found
+    if (supportedCurrencies.size === 0) {
+      supportedCurrencies.add("USD")
+    } else {
+      // Ensure USD is always included if other currencies exist
+      supportedCurrencies.add("USD")
+    }
+
+    const currencyList = Array.from(supportedCurrencies)
+    console.log(`Store supported currencies for import: ${currencyList.join(", ")}`)
+
+    // Query all categories for name-based lookup
     const { data: allCategories } = await query.graph({
       entity: "product_category",
       fields: ["id", "name"],
@@ -793,7 +883,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           regularPriceIndex,
           publishedIndex,
           sizeIndex,
-          variantProducts.map((vp) => vp.data) // variant data
+          variantProducts.map((vp) => vp.data), // variant data
+          currencyList // supported currencies
         )
       } catch (rowError: any) {
         const errorMessage = rowError instanceof Error ? rowError.message : String(rowError)
@@ -847,7 +938,19 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }
         }
 
-        productsToCreate.push({ productData, brandId })
+        // Store price information for each variant to update after creation
+        const variantPricesMap = new Map<string, Array<{ amount: number; currency_code: string }>>()
+
+        // Store prices for all variants
+        if (productData.variants && productData.variants.length > 0) {
+          productData.variants.forEach((variant: any) => {
+            if (variant.sku && variant.prices && variant.prices.length > 0) {
+              variantPricesMap.set(variant.sku, variant.prices)
+            }
+          })
+        }
+
+        productsToCreate.push({ productData, brandId, variantPricesMap })
       }
     }
 
@@ -865,8 +968,20 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const batchLocationStock = productLocationStockMap.slice(i, i + BATCH_SIZE)
 
       // Extract product data and brand IDs separately
-      const batchProductData = batch.map((item) => item.productData)
+      // Remove prices from variants during creation - we'll set them separately after creation (same as test API)
+      const batchProductData = batch.map((item) => {
+        const productData = { ...item.productData }
+        // Remove prices from variants to avoid conflicts - we'll set them in update step
+        if (productData.variants) {
+          productData.variants = productData.variants.map((variant: any) => {
+            const { prices, ...variantWithoutPrices } = variant
+            return variantWithoutPrices
+          })
+        }
+        return productData
+      })
       const batchBrandIds = batch.map((item) => item.brandId)
+      const batchVariantPricesMaps = batch.map((item) => item.variantPricesMap || new Map())
 
       let result: any
       try {
@@ -976,6 +1091,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
           if (createdProducts && createdProducts.length > 0) {
             const product = createdProducts[0]
+
             if (product.variants && product.variants.length > 0) {
               // Process all variants (main product + size variants)
               for (const variant of product.variants) {
@@ -1076,6 +1192,158 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             // Continue even if inventory level creation fails
           }
         }
+
+        // Update variant prices AFTER inventory is created (separate step for better reliability)
+        // Wait a bit more to ensure all data is fully persisted
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+
+        console.log("Starting price updates for created products...")
+        console.log(`Total products in batch: ${result.created.length}`)
+        for (let j = 0; j < result.created.length; j++) {
+          const createdProduct = result.created[j]
+          const variantPricesMap = batchVariantPricesMaps[j] || new Map()
+
+          console.log(`Processing product ${j + 1}/${result.created.length}: ${createdProduct.id}`)
+          console.log(`Variant prices map size: ${variantPricesMap.size}`)
+          if (variantPricesMap.size > 0) {
+            console.log(`Variant prices map contents:`, Array.from(variantPricesMap.entries()).map(([sku, prices]) => `${sku}: ${JSON.stringify(prices)}`))
+          }
+
+          if (variantPricesMap.size === 0) {
+            console.log(`No prices to update for product ${createdProduct.id}`)
+            continue // No prices to update for this product
+          }
+
+          // Get product ID from result
+          const productId = createdProduct.id
+          if (!productId) continue
+
+          // Query variants for this product to update prices
+          const { data: productVariants } = await query.graph({
+            entity: "product",
+            fields: [
+              "id",
+              "variants.id",
+              "variants.sku",
+            ],
+            filters: {
+              id: productId,
+            },
+          })
+
+          if (!productVariants || productVariants.length === 0) {
+            console.warn(`Product ${productId} not found for price update`)
+            continue
+          }
+
+          const product = productVariants[0]
+          if (!product.variants || product.variants.length === 0) {
+            continue
+          }
+
+          // Collect all variants with prices to update for this product
+          const variantsToUpdate: Array<{ id: string; sku: string; prices: Array<{ amount: number; currency_code: string }> }> = []
+
+          for (const variant of product.variants) {
+            if (variant.sku && variantPricesMap.has(variant.sku)) {
+              const prices = variantPricesMap.get(variant.sku)!
+
+              // Ensure prices array is properly formatted (same as test API)
+              const formattedPrices = prices.map((p: any) => ({
+                amount: typeof p.amount === 'number' ? p.amount : parseInt(p.amount),
+                currency_code: typeof p.currency_code === 'string' ? p.currency_code.toLowerCase() : p.currency_code,
+              }))
+
+              variantsToUpdate.push({
+                id: variant.id,
+                sku: variant.sku,
+                prices: formattedPrices,
+              })
+            }
+          }
+
+          if (variantsToUpdate.length === 0) {
+            continue
+          }
+
+          // Update all variants for this product in one workflow call (more efficient)
+          try {
+            console.log(`Updating prices for ${variantsToUpdate.length} variant(s) of product ${productId}`)
+
+            // Update variant prices using updateProductsWorkflow (same logic as working test API)
+            const updateResult = await updateProductsWorkflow(req.scope).run({
+              input: {
+                products: [
+                  {
+                    id: productId,
+                    variants: variantsToUpdate.map(v => ({
+                      id: v.id,
+                      prices: v.prices, // [{ amount, currency_code }]
+                    })),
+                  },
+                ],
+              },
+            })
+
+            console.log(`✓ Successfully updated prices for ${variantsToUpdate.length} variant(s) of product ${productId}`)
+
+            // Verify the updates worked
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            for (const variantUpdate of variantsToUpdate) {
+              const { data: verifyData } = await query.graph({
+                entity: "product_variant",
+                fields: [
+                  "id",
+                  "sku",
+                  "price_set.prices.amount",
+                  "price_set.prices.currency_code",
+                ],
+                filters: {
+                  id: variantUpdate.id,
+                },
+              })
+
+              if (verifyData && verifyData.length > 0) {
+                const verifiedVariant = verifyData[0] as any
+                const verifiedPrices = verifiedVariant.price_set?.prices || []
+                console.log(`✓ Verified: Variant ${variantUpdate.sku} now has ${verifiedPrices.length} price(s):`, verifiedPrices.map((p: any) => `${p.currency_code}:${p.amount}`).join(", "))
+              }
+            }
+          } catch (priceUpdateError: any) {
+            console.error(`✗ Error updating prices for product ${productId}:`, priceUpdateError)
+            console.error(`Error details:`, {
+              message: priceUpdateError?.message,
+              stack: priceUpdateError?.stack,
+              name: priceUpdateError?.name,
+            })
+            // Try updating variants one at a time as fallback
+            console.log("Attempting to update variants one at a time as fallback...")
+            for (const variantUpdate of variantsToUpdate) {
+              try {
+                await new Promise((resolve) => setTimeout(resolve, 300))
+                await updateProductsWorkflow(req.scope).run({
+                  input: {
+                    products: [
+                      {
+                        id: productId,
+                        variants: [
+                          {
+                            id: variantUpdate.id,
+                            prices: variantUpdate.prices,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                })
+                console.log(`✓ Fallback: Successfully updated prices for variant ${variantUpdate.sku}`)
+              } catch (fallbackError: any) {
+                console.error(`✗ Fallback failed for variant ${variantUpdate.sku}:`, fallbackError?.message)
+              }
+            }
+          }
+        }
+        console.log("Completed price updates for created products")
       }
     }
 

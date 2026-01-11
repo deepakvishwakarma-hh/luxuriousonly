@@ -21,6 +21,7 @@ import { CreateLikedProductSchema as StoreCreateLikedProductSchema } from "./sto
 import { PostStoreProductQuerySchema } from "./store/product-queries/route";
 import { GetAdminProductQueriesSchema } from "./admin/product-queries/route";
 import { UpdateProductQueryStatusSchema } from "./admin/product-queries/[id]/route";
+import { UpdateVariantPricesSchema } from "./admin/variants/[variantId]/prices/route";
 // import { GetAdminBrandsSchema } from "./admin/brands/route";
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 
@@ -308,6 +309,19 @@ export default defineMiddlewares({
         // @ts-ignore
         validateAndTransformBody(UpdateProductQueryStatusSchema),
       ],
+    },
+    {
+      matcher: "/admin/variants/:variantId/prices",
+      method: ["PUT"],
+      middlewares: [
+        // @ts-ignore
+        validateAndTransformBody(UpdateVariantPricesSchema),
+      ],
+    },
+    {
+      matcher: "/admin/variants/:variantId/prices",
+      method: ["GET"],
+      // No body validation needed for GET requests
     },
 
 

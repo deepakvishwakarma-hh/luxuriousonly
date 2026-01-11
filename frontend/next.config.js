@@ -33,6 +33,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "luxuriousmart.com",
+      },
+      {
+        protocol: "https",
         hostname: "www.occhialando.eu",
       },
       {
