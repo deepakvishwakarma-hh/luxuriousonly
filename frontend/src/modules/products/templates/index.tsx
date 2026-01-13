@@ -43,7 +43,14 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
   return (
     <>
-      <TrackProductView productId={product.id} />
+      <TrackProductView
+        product={{
+          id: product.id,
+          handle: product.handle,
+          thumbnail: product.thumbnail,
+          title: product.title,
+        }}
+      />
       <div className="content-container">
         {/* Breadcrumb */}
         <nav

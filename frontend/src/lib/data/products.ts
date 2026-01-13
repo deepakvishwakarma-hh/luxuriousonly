@@ -425,3 +425,81 @@ export const getProductAvailability = async ({
     return null
   }
 }
+
+/**
+ * Fetch products by their IDs (optimized for recently viewed products)
+ */
+export const getProductsByIds = async ({
+  productIds,
+  countryCode,
+  regionId,
+}: {
+  productIds: string[]
+  countryCode?: string
+  regionId?: string
+}): Promise<HttpTypes.StoreProduct[]> => {
+  if (!productIds || productIds.length === 0) {
+    return []
+  }
+
+  if (!countryCode && !regionId) {
+    throw new Error("Country code or region ID is required")
+  }
+
+  let region: HttpTypes.StoreRegion | undefined | null
+
+  if (countryCode) {
+    region = await getRegion(countryCode)
+  } else {
+    region = await retrieveRegion(regionId!)
+  }
+
+  if (!region) {
+    return []
+  }
+
+  const authHeaders = await getAuthHeaders()
+  const headers: Record<string, string> = {
+    ...authHeaders,
+  }
+
+  // Ensure publishable API key is included
+  if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY && !headers['x-publishable-api-key']) {
+    headers['x-publishable-api-key'] = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  }
+
+  const next = {
+    ...(await getCacheOptions("products")),
+  }
+
+  try {
+    const response = await sdk.client.fetch<{ products: HttpTypes.StoreProduct[] }>(
+      `/store/products`,
+      {
+        method: "GET",
+        query: {
+          id: productIds,
+          limit: productIds.length,
+          region_id: region.id,
+          fields: "id,title,handle,thumbnail,images",
+        },
+        headers,
+        next,
+        cache: "force-cache",
+      }
+    )
+
+    return response?.products || []
+  } catch (error: any) {
+    console.error("[getProductsByIds] API Error:", {
+      message: error?.message,
+      status: error?.status,
+      productIds,
+      regionId: region?.id,
+      countryCode,
+      error: error,
+    })
+
+    return []
+  }
+}

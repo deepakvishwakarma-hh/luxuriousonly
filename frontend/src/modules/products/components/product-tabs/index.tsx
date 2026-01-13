@@ -29,7 +29,13 @@ const ProductTabs = ({
   const tabs = [
     {
       label: "Product Details",
-      component: <ProductInfoTab product={product} visibleFields={visibleFields} brand={brand} />,
+      component: (
+        <ProductInfoTab
+          product={product}
+          visibleFields={visibleFields}
+          brand={brand}
+        />
+      ),
     },
 
     {
@@ -42,7 +48,6 @@ const ProductTabs = ({
         <RecentlyViewedProducts
           currentProductId={product.id}
           countryCode={countryCode}
-          region={region}
         />
       ),
     },
@@ -68,7 +73,7 @@ const ProductTabs = ({
 
 const ProductInfoTab = ({ product, visibleFields, brand }: ProductTabProps) => {
   const formatKey = (key: string): string => {
-    const raw = key.includes(".") ? key.split('.').slice(-1)[0] : key
+    const raw = key.includes(".") ? key.split(".").slice(-1)[0] : key
     return raw
       .replace(/_/g, " ")
       .split(" ")
@@ -88,16 +93,17 @@ const ProductInfoTab = ({ product, visibleFields, brand }: ProductTabProps) => {
     // if brand field requested, prefer provided brand prop, then product.brand fallback
     if (key === "brand") {
       if (brand && brand.name) return brand.name
-      if (Object.prototype.hasOwnProperty.call(obj, 'brand')) {
-        const prodBrand = obj['brand']
-        if (prodBrand && typeof prodBrand === 'object') return prodBrand.name || prodBrand
+      if (Object.prototype.hasOwnProperty.call(obj, "brand")) {
+        const prodBrand = obj["brand"]
+        if (prodBrand && typeof prodBrand === "object")
+          return prodBrand.name || prodBrand
         return prodBrand
       }
     }
 
     // support nested keys with dot notation
-    if (key.includes('.')) {
-      return key.split('.').reduce((acc: any, part: string) => {
+    if (key.includes(".")) {
+      return key.split(".").reduce((acc: any, part: string) => {
         if (acc === undefined || acc === null) return undefined
         return acc[part]
       }, obj)
@@ -107,15 +113,25 @@ const ProductInfoTab = ({ product, visibleFields, brand }: ProductTabProps) => {
     if (Object.prototype.hasOwnProperty.call(obj, key)) return obj[key]
 
     // fallback to metadata
-    if (obj.metadata && Object.prototype.hasOwnProperty.call(obj.metadata, key)) return obj.metadata[key]
+    if (obj.metadata && Object.prototype.hasOwnProperty.call(obj.metadata, key))
+      return obj.metadata[key]
 
     return undefined
   }
 
   // If visibleFields provided, render only those. Otherwise fall back to showing all metadata entries.
-  const fieldsToRender = visibleFields && visibleFields.length > 0
-    ? visibleFields.map((k) => ({ key: formatKey(k), value: formatValue(resolveKey(product, k, brand)) }))
-    : (product.metadata ? Object.entries(product.metadata).map(([key, value]) => ({ key: formatKey(key), value: formatValue(value) })) : [])
+  const fieldsToRender =
+    visibleFields && visibleFields.length > 0
+      ? visibleFields.map((k) => ({
+          key: formatKey(k),
+          value: formatValue(resolveKey(product, k, brand)),
+        }))
+      : product.metadata
+      ? Object.entries(product.metadata).map(([key, value]) => ({
+          key: formatKey(key),
+          value: formatValue(value),
+        }))
+      : []
 
   return (
     <div className="text-small-regular border border-gray-200">
