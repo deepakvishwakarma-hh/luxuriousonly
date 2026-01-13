@@ -8,9 +8,10 @@ import { getCompareCount } from "@lib/util/compare-cookies"
 type CompareButtonProps = {
   labelOnly?: boolean
   label?: string
+  asMenuItem?: boolean
 }
 
-export default function CompareButton({ labelOnly = false, label = "Compare" }: CompareButtonProps) {
+export default function CompareButton({ labelOnly = false, label = "Compare", asMenuItem = false }: CompareButtonProps) {
   const [count, setCount] = useState(0)
 
   useEffect(() => {
@@ -40,6 +41,26 @@ export default function CompareButton({ labelOnly = false, label = "Compare" }: 
       clearInterval(interval)
     }
   }, [])
+
+  if (asMenuItem) {
+    return (
+      <LocalizedClientLink
+        href="/compare"
+        className="py-4 border-b border-gray-200 flex items-center justify-between"
+        data-testid="nav-compare-link"
+      >
+        <div className="flex items-center gap-3">
+          <WoodMartIcon iconContent="f128" size={20} />
+          <span className="text-sm font-semibold">{label}</span>
+        </div>
+        {count > 0 && (
+          <span className="inline-flex items-center justify-center bg-black text-white text-xs rounded-full px-2 py-0.5">
+            {count}
+          </span>
+        )}
+      </LocalizedClientLink>
+    )
+  }
 
   if (labelOnly) {
     return (

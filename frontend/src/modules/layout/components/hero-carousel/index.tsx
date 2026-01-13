@@ -15,9 +15,17 @@ type HeroCarouselProps = {
 }
 
 export default function HeroCarousel({ carousels }: HeroCarouselProps) {
-  if (!carousels || carousels.length === 0) {
-    return null
-  }
+  // Add a static slide (public/sample/slide1.webp) as the first slide
+  const slides: Carousel[] = [
+    {
+      id: "slide1",
+      image_url1: "/sample/slide1.webp",
+      image_url2: "/sample/slide1.webp",
+      link: null,
+      order: -1,
+    },
+    ...(carousels || []),
+  ]
 
   return (
     <div className="w-full relative">
@@ -34,10 +42,10 @@ export default function HeroCarousel({ carousels }: HeroCarouselProps) {
           dynamicBullets: true,
         }}
         navigation={true}
-        loop={carousels.length > 1}
+        loop={slides.slice(0, 2).length > 1}
         className="hero-carousel"
       >
-        {carousels.map((carousel) => {
+        {slides.slice(0, 2).map((carousel) => {
           // Use image_url1 for desktop, image_url2 for mobile
           const desktopImageUrl = carousel.image_url1 || carousel.image_url2
           const mobileImageUrl = carousel.image_url2 || carousel.image_url1
@@ -45,7 +53,7 @@ export default function HeroCarousel({ carousels }: HeroCarouselProps) {
           if (!desktopImageUrl && !mobileImageUrl) return null
 
           const slideContent = (
-            <div className="relative w-full h-[500px] md:h-[600px] group overflow-hidden">
+            <div className="relative w-full h-[200px] md:h-[600px] group overflow-hidden">
               {/* Desktop image - visible on md and larger screens */}
               {desktopImageUrl && (
                 <Image

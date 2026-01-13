@@ -17,8 +17,58 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
   const deliveryReturnState = useToggleState(false)
   const askQuestionState = useToggleState(false)
 
+  const [shareOpen, setShareOpen] = React.useState(false)
+  const [copied, setCopied] = React.useState(false)
+  const shareRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (shareRef.current && !shareRef.current.contains(e.target as Node)) {
+        setShareOpen(false)
+      }
+    }
+
+    if (shareOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [shareOpen])
+
+  const currentUrl = typeof window !== "undefined" ? window.location.href : ""
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      setShareOpen(false)
+    } catch (e) {
+      console.error("Copy failed", e)
+    }
+  }
+
+  const handleShareNative = async () => {
+    if ((navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: document.title, url: currentUrl })
+        setShareOpen(false)
+      } catch (e) {
+        console.error("Share failed", e)
+      }
+    } else {
+      // fallback: open facebook/twitter etc.
+      setShareOpen(true)
+    }
+  }
+
+  const openPopup = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=600")
+    setShareOpen(false)
+  }
+
   return (
-    <div className="flex flex-wrap gap-3 mt-4">
+    <div className="flex flex-wrap gap-3 mt-4 relative" ref={shareRef}>
       <Button
         variant="transparent"
         onClick={sizeGuideState.open}
@@ -44,8 +94,61 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
         Ask a Question
       </Button>
 
-      {/* Size Guide Modal */}
-      <Modal
+      {/* Share Button */}
+      <div className="relative">
+        <Button
+          variant="transparent"
+          onClick={() => setShareOpen((s) => !s)}
+          className="text-sm flex items-center gap-2 bg-gray-50 border border-gray-400 rounded-md px-3 py-2 hover:bg-gray-200 transition-colors"
+        >
+          <span aria-hidden>🔗</span>
+          Share
+        </Button>
+
+        {shareOpen && (
+          <div className="absolute right-0 mt-2 w-[220px] bg-white border border-gray-200 shadow-lg rounded-md z-50 p-2">
+            <button
+              className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+              onClick={() => openPopup(`https://wa.me/?text=${encodeURIComponent(currentUrl)}`)}
+            >
+              <span>💬</span>
+              <span className="text-sm">WhatsApp</span>
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+              onClick={() => openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`)}
+            >
+              <span>📘</span>
+              <span className="text-sm">Facebook</span>
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+              onClick={() => openPopup(`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}`)}
+            >
+              <span>🐦</span>
+              <span className="text-sm">Twitter</span>
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+              onClick={handleCopyLink}
+            >
+              <span>📋</span>
+              <span className="text-sm">{copied ? "Copied!" : "Copy link"}</span>
+            </button>
+            {(navigator as any).share && (
+              <button
+                className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+                onClick={handleShareNative}
+              >
+                <span>🔗</span>
+                <span className="text-sm">Share...</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Size Guide Modal */}      <Modal
         isOpen={sizeGuideState.state}
         close={sizeGuideState.close}
         size="large"

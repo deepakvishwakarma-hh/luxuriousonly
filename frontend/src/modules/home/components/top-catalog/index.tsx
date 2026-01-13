@@ -49,10 +49,10 @@ const TopCatalog = () => {
             <div className="absolute bottom-0 left-0 right-0 p-3 flex justify-center">
               <LocalizedClientLink
                 href={item.href}
-                className="bg-black text-white px-6 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-opacity-90 transition-all duration-300 flex items-center gap-2 group/button"
+                className="bg-black text-white px-8 py-3 text-sm md:text-base font-semibold uppercase tracking-wider hover:bg-opacity-95 transition-all duration-300 flex items-center gap-3 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-1 group/button"
               >
-                {item.title}
-                <span className="transition-transform duration-300 group-hover/button:translate-x-1">
+                <span className="tracking-wider">{item.title}</span>
+                <span className="inline-flex items-center justify-center bg-white text-black rounded-sm w-6 h-6 text-xs font-bold transition-transform duration-300 group-hover/button:translate-x-1 ml-2">
                   →
                 </span>
               </LocalizedClientLink>

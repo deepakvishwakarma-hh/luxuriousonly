@@ -90,7 +90,7 @@ const CartDropdown = ({
           <div className="flex items-center gap-4">
             <LocalizedClientLink
               className="hover:text-ui-fg-base flex items-center relative"
-              href={customer ? "/cart" : "/account"}
+              href="/cart"
               data-testid="nav-cart-link"
             >
               <WoodMartIcon iconContent="f126" size={20} badge={totalItems} />
@@ -207,13 +207,13 @@ const CartDropdown = ({
                       })}
                     </span>
                   </div>
-                  <LocalizedClientLink href={customer ? "/cart" : "/account"} passHref>
+                  <LocalizedClientLink href="/cart" passHref>
                     <Button
                       className="w-full"
                       size="large"
                       data-testid="go-to-cart-button"
                     >
-                      {customer ? "Go to cart" : "Sign in to view cart"}
+                      Go to cart
                     </Button>
                   </LocalizedClientLink>
                 </div>
