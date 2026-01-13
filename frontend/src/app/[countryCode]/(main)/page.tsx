@@ -57,9 +57,9 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       description,
       images: [
         {
-          url: `${baseURL}/opengraph-image.jpg`,
+          url: `${baseURL}/images/logos/brand-square.png`,
           width: 1200,
-          height: 630,
+          height: 1200,
           alt: `${siteName} - Premium Luxury Products`,
         },
       ],
@@ -68,7 +68,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       card: "summary_large_image",
       title,
       description,
-      images: [`${baseURL}/twitter-image.jpg`],
+      images: [`${baseURL}/images/logos/brand-square.png`],
     },
     robots: {
       index: true,

@@ -121,25 +121,30 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     countryCode.toUpperCase(),
   ]
 
-  // Get images for Open Graph
-  const ogImages =
-    product.images && product.images.length > 0
-      ? product.images.slice(0, 4).map((img) => ({
-          url: img.url,
+  // Get first product image for Open Graph (prioritize first image for better SEO)
+  const firstImage = product.images && product.images.length > 0 
+    ? product.images[0] 
+    : null
+  
+  const ogImages = firstImage
+    ? [
+        {
+          url: firstImage.url,
           width: 1200,
-          height: 630,
+          height: 1200,
           alt: product.title,
-        }))
-      : product.thumbnail
-      ? [
-          {
-            url: product.thumbnail,
-            width: 1200,
-            height: 630,
-            alt: product.title,
-          },
-        ]
-      : []
+        },
+      ]
+    : product.thumbnail
+    ? [
+        {
+          url: product.thumbnail,
+          width: 1200,
+          height: 1200,
+          alt: product.title,
+        },
+      ]
+    : []
 
   const siteName = websiteConfig.shortName
   const companyName = websiteConfig.name || websiteConfig.displayName
