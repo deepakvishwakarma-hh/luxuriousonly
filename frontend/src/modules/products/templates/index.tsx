@@ -83,6 +83,8 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             <ProductImageCarousel
               images={(images ?? []).map((image) => image.url)}
               productTitle={product.title}
+              productHandle={product.handle}
+              ean={product.metadata?.ean as string | undefined}
             />
           </div>
           {/* right side  */}

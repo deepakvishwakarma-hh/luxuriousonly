@@ -11,7 +11,10 @@ type NavHeaderProps = {
   onToggleMobileSearch?: () => void
 }
 
-export default function NavHeader({ cartButton, onToggleMobileSearch }: NavHeaderProps) {
+export default function NavHeader({
+  cartButton,
+  onToggleMobileSearch,
+}: NavHeaderProps) {
   const { customer, isLoading } = useCustomer()
 
   return (
@@ -47,7 +50,7 @@ export default function NavHeader({ cartButton, onToggleMobileSearch }: NavHeade
           <LikedButton />
         </div>
 
-        {cartButton}
+        {/* {cartButton} */}
       </div>
     </>
   )

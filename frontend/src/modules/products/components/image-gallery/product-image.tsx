@@ -17,11 +17,15 @@ import { BsArrowsFullscreen } from "react-icons/bs"
 interface ProductImageCarouselProps {
   images: string[]
   productTitle: string
+  productHandle?: string
+  ean?: string
 }
 
 export default function ProductImageCarousel({
   images,
   productTitle,
+  productHandle,
+  ean,
 }: ProductImageCarouselProps) {
   const [activeImage, setActiveImage] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -60,10 +64,35 @@ export default function ProductImageCarousel({
     )
   }
 
+  // Generate SEO-optimized alt text
+  const getImageAlt = (index: number): string => {
+    if (index === 0) {
+      // First image: use product slug (handle)
+      return productHandle || productTitle
+    } else {
+      // Subsequent images: use EAN with image number
+      const imageNumber = index + 1
+      return ean ? `${ean} image #${imageNumber}` : `${productTitle} image #${imageNumber}`
+    }
+  }
+
+  // Generate aria-describedby ID for each image
+  const getImageDescribedBy = (index: number): string => {
+    return `product-image-desc-${index}`
+  }
+
   const lightboxSlides = images.map((img) => ({ src: img }))
 
   return (
     <div className="w-full">
+      {/* Hidden description elements for aria-describedby */}
+      <div className="sr-only">
+        {images.map((_, index) => (
+          <div key={index} id={getImageDescribedBy(index)}>
+            {getImageAlt(index)}
+          </div>
+        ))}
+      </div>
       {/* ================= MOBILE SLIDER ================= */}
       <div className="block md:hidden relative aspect-square bg-white rounded">
         <Swiper
@@ -76,10 +105,11 @@ export default function ProductImageCarousel({
               <div className="relative aspect-square">
                 <Image
                   src={img}
-                  alt={`${productTitle} ${i}`}
+                  alt={getImageAlt(i)}
                   fill
                   className="object-contain"
                   priority={i === 0}
+                  aria-describedby={getImageDescribedBy(i)}
                 />
               </div>
             </SwiperSlide>
@@ -110,9 +140,10 @@ export default function ProductImageCarousel({
             >
               <Image
                 src={img}
-                alt={`Thumbnail ${index}`}
+                alt={getImageAlt(index)}
                 fill
                 className="object-contain"
+                aria-describedby={getImageDescribedBy(index)}
               />
             </button>
           ))}
@@ -129,10 +160,11 @@ export default function ProductImageCarousel({
           
           <Image
             src={images[activeImage]}
-            alt={productTitle}
+            alt={getImageAlt(activeImage)}
             fill
             className="object-contain"
             priority
+            aria-describedby={getImageDescribedBy(activeImage)}
           />
 
           {/* zoom overlay */}
@@ -151,10 +183,11 @@ export default function ProductImageCarousel({
             >
               <Image
                 src={images[activeImage]}
-                alt={productTitle}
+                alt={getImageAlt(activeImage)}
                 fill
                 className="object-cover"
                 priority={isZoomed}
+                aria-describedby={getImageDescribedBy(activeImage)}
               />
             </div>
           </div>

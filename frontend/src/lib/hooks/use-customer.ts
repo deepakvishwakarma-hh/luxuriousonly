@@ -32,6 +32,11 @@ function getAuthHeaders(): { authorization: string } | {} {
  * Get backend URL for client-side requests
  */
 function getBackendUrl(): string {
+  // Use environment variable if available (preferred)
+  if (process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) {
+    return process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  }
+  
   if (typeof window !== "undefined") {
     // Client-side: determine backend URL from current origin
     if (window.location.origin.includes("localhost")) {
@@ -41,7 +46,7 @@ function getBackendUrl(): string {
     return window.location.origin.replace(/:\d+$/, ":9000")
   }
   // Fallback for SSR (shouldn't happen in this hook)
-  return process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+  return "http://localhost:9000"
 }
 
 /**
