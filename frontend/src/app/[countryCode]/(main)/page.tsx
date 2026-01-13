@@ -6,7 +6,7 @@ import { getBaseURL } from "@lib/util/env"
 import HeroCarouselTemplate from "@modules/layout/templates/hero-carousel"
 import DiscountBar from "@modules/home/components/discount-bar"
 import TopCatalog from "@modules/home/components/top-catalog"
-import PaginatedProducts from "@modules/store/templates/paginated-products"
+import HomepageListing from "@modules/home/components/homepage-listing"
 import { websiteConfig } from "@lib/website.config"
 
 type Props = {
@@ -151,7 +151,7 @@ export default async function Home(props: Props) {
       <DiscountBar />
       <TopCatalog />
       <div className="content-container py-12 small:py-24">
-        <PaginatedProducts
+        <HomepageListing
           sortBy="created_at"
           page={1}
           countryCode={countryCode}
