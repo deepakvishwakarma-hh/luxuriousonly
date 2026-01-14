@@ -13,13 +13,15 @@ type CatalogItem = {
 const catalogItems: CatalogItem[] = [
   {
     title: "MEN",
-    href: "/store?gender=man",
+    // href: "/store?gender=man",
+    href: "/",
     imageSrc: "/images/Men.png",
     imageAlt: "Men category",
   },
   {
     title: "WOMEN",
-    href: "/store?gender=women",
+    // href: "/store?gender=women",
+    href: "/",
     imageSrc: "/images/Women.png",
     imageAlt: "Women category",
   },
