@@ -27,7 +27,9 @@
     "@medusajs/framework": "2.11.3",
     "@medusajs/medusa": "2.11.3",
     "@types/nodemailer": "^7.0.4",
+    "@uiw/react-md-editor": "^4.0.11",
     "nodemailer": "^7.0.12",
+    "react-quill": "^2.0.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

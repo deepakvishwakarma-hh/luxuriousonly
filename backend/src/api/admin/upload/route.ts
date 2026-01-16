@@ -73,7 +73,37 @@ export const POST = async (
 
                     // Return the URL of the uploaded file
                     const uploadedFile = uploadedFiles[0]
-                    const fileUrl = uploadedFile.url
+                    let fileUrl = uploadedFile.url
+
+                    // Fix URL if it contains localhost or is a relative path
+                    const backendUrl = process.env.BACKEND_URL
+                    if (backendUrl) {
+                        const normalizedBackendUrl = backendUrl.replace(/\/$/, '')
+                        
+                        // If URL contains localhost or 127.0.0.1, replace it with backend URL
+                        if (fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')) {
+                            try {
+                                const url = new URL(fileUrl)
+                                const backendUrlObj = new URL(normalizedBackendUrl)
+                                // Replace the origin (protocol + hostname + port) with backend URL origin
+                                fileUrl = fileUrl.replace(url.origin, backendUrlObj.origin)
+                            } catch (e) {
+                                // If URL parsing fails, try regex replacement
+                                fileUrl = fileUrl.replace(/https?:\/\/[^/]+/, normalizedBackendUrl)
+                            }
+                        }
+                        // If URL is a relative path, prepend backend URL
+                        else if (fileUrl.startsWith('/')) {
+                            fileUrl = `${normalizedBackendUrl}${fileUrl}`
+                        }
+                        // If URL doesn't start with http/https, it might be malformed
+                        else if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+                            // If it looks like a path, prepend backend URL
+                            if (fileUrl.startsWith('/') || !fileUrl.includes('://')) {
+                                fileUrl = `${normalizedBackendUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`
+                            }
+                        }
+                    }
 
                     res.json({
                         url: fileUrl,

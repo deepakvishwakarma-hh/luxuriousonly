@@ -33,7 +33,8 @@ module.exports = defineConfig({
       resolve: "@medusajs/file-local",
       options: {
         upload_dir: "uploads/images",
-        backend_url: process.env.BACKEND_URL
+        // Ensure BACKEND_URL doesn't have trailing slash for proper URL generation
+        backend_url: process.env.BACKEND_URL ? process.env.BACKEND_URL.replace(/\/$/, '') : undefined
       },
     },
   ],
