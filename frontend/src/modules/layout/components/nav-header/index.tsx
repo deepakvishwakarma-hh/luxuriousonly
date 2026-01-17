@@ -5,6 +5,7 @@ import AccountDropdown from "@modules/layout/components/account-dropdown"
 import CompareButton from "@modules/layout/components/compare-button"
 import LikedButton from "@modules/layout/components/liked-button"
 import NavSearch from "@modules/layout/components/nav-search"
+import GoogleTranslate from "@modules/layout/components/google-translate"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
 
@@ -46,6 +47,11 @@ export default function NavHeader({
         >
           <WoodMartIcon iconContent="f126" size={20} />
         </LocalizedClientLink>
+
+        {/* Google Translate Widget */}
+        <div className="hidden md:block">
+          <GoogleTranslate />
+        </div>
 
         {/* Account ONLY on desktop */}
         <div className="hidden md:block">

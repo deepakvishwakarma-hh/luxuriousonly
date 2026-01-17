@@ -1,6 +1,10 @@
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 module.exports = defineConfig({
+  admin: {
+    backendUrl: process.env.BACKEND_URL,
+    storefrontUrl: process.env.MEDUSA_STOREFRONT_URL
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
@@ -27,15 +31,20 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/product_query",
     },
-  ],
-  plugins: [
     {
-      resolve: "@medusajs/file-local",
+      resolve: "@medusajs/medusa/file",
       options: {
-        upload_dir: "uploads/images",
-        // Ensure BACKEND_URL doesn't have trailing slash for proper URL generation
-        backend_url: process.env.BACKEND_URL ? process.env.BACKEND_URL.replace(/\/$/, '') : undefined
+        providers: [
+          {
+            resolve: "@medusajs/medusa/file-local",
+            id: "local",
+            options: {
+              backend_url: `${process.env.BACKEND_URL}/static`
+            },
+          },
+        ],
       },
     },
+
   ],
 })

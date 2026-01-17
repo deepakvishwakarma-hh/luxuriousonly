@@ -1,166 +1,40 @@
-/* WoodMart Font - Icon Font */
-@import url(https://db.onlinewebfonts.com/c/f890eea2e91e1270ce7109e36a42260a?family=woodmart-font);
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
-
-@layer utilities {
-  /* Chrome, Safari and Opera */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .no-scrollbar::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-
-  input:focus ~ label,
-  input:not(:placeholder-shown) ~ label {
-    @apply -translate-y-2 text-xsmall-regular;
-  }
-
-  input:focus ~ label {
-    @apply left-0;
-  }
-
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill,
-  textarea:-webkit-autofill:hover,
-  textarea:-webkit-autofill:focus,
-  select:-webkit-autofill,
-  select:-webkit-autofill:hover,
-  select:-webkit-autofill:focus {
-    border: 1px solid #212121;
-    -webkit-text-fill-color: #212121;
-    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
-    transition: background-color 5000s ease-in-out 0s;
-  }
-
-  input[type="search"]::-webkit-search-decoration,
-  input[type="search"]::-webkit-search-cancel-button,
-  input[type="search"]::-webkit-search-results-button,
-  input[type="search"]::-webkit-search-results-decoration {
-    -webkit-appearance: none;
-  }
+/* Google Translate Widget Styles */
+.google-translate-wrapper {
+  display: inline-block;
 }
 
-@layer components {
-  .content-container {
-    @apply max-w-[1440px] w-full mx-auto px-6;
-  }
+/* Hide the default Google Translate banner */
+.goog-te-banner-frame {
+  display: none !important;
+}
 
-  .contrast-btn {
-    @apply px-4 py-2 border border-black rounded-full hover:bg-black hover:text-white transition-colors duration-200 ease-in;
-  }
+/* Style the Google Translate select dropdown */
+.goog-te-gadget {
+  font-family: inherit !important;
+  font-size: 14px !important;
+  color: inherit !important;
+}
 
-  .text-xsmall-regular {
-    @apply text-[10px] leading-4 font-normal;
-  }
+.goog-te-gadget-simple {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+}
 
-  .text-small-regular {
-    @apply text-xs leading-5 font-normal;
-  }
+.goog-te-gadget-simple .goog-te-menu-value {
+  color: inherit !important;
+}
 
-  .text-small-semi {
-    @apply text-xs leading-5 font-semibold;
-  }
+.goog-te-gadget-simple .goog-te-menu-value span {
+  color: inherit !important;
+}
 
-  .text-base-regular {
-    @apply text-sm leading-6 font-normal;
-  }
-
-  .text-base-semi {
-    @apply text-sm leading-6 font-semibold;
-  }
-
-  .text-large-regular {
-    @apply text-base leading-6 font-normal;
-  }
-
-  .text-large-semi {
-    @apply text-base leading-6 font-semibold;
-  }
-
-  .text-xl-regular {
-    @apply text-2xl leading-[36px] font-normal;
-  }
-
-  .text-xl-semi {
-    @apply text-2xl leading-[36px] font-semibold;
-  }
-
-  .text-2xl-regular {
-    @apply text-[30px] leading-[48px] font-normal;
-  }
-
-  .text-2xl-semi {
-    @apply text-[30px] leading-[48px] font-semibold;
-  }
-
-  .text-3xl-regular {
-    @apply text-[32px] leading-[44px] font-normal;
-  }
-
-  .text-3xl-semi {
-    @apply text-[32px] leading-[44px] font-semibold;
-  }
-
-  /* Swiper Carousel Styles */
-  .hero-carousel {
-    width: 100%;
-    height: 100%;
-  }
-
-  .hero-carousel .swiper-pagination-bullet {
-    background: white;
-    opacity: 0.5;
-    width: 12px;
-    height: 12px;
-  }
-
-  .hero-carousel .swiper-pagination-bullet-active {
-    opacity: 1;
-    background: white;
-  }
-
-  .hero-carousel .swiper-button-next,
-  .hero-carousel .swiper-button-prev {
-    color: white;
-    background: rgba(0, 0, 0, 0.3);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    transition: background 0.3s;
-  }
-
-  .hero-carousel .swiper-button-next:hover,
-  .hero-carousel .swiper-button-prev:hover {
-    background: rgba(0, 0, 0, 0.5);
-  }
-
-  .hero-carousel .swiper-button-next::after,
-  .hero-carousel .swiper-button-prev::after {
-    font-size: 20px;
-    font-weight: bold;
-  }
-
-  /* WoodMart Icon Font Utility */
-  .woodmart-icon {
-    font-family: "woodmart-font", sans-serif;
-    font-style: normal;
-    font-weight: normal;
-    font-variant: normal;
-    text-transform: none;
-    line-height: 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+/* Ensure the dropdown is visible and styled properly */
+.goog-te-menu-frame {
+  z-index: 9999 !important;
 }
