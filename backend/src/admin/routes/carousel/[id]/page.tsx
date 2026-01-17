@@ -158,7 +158,7 @@ const CarouselEditPage = () => {
             <Label htmlFor="link">Link</Label>
             <Input
               id="link"
-              type="url"
+              type="text"
               value={formData.link}
               onChange={(e) =>
                 setFormData({ ...formData, link: e.target.value })
