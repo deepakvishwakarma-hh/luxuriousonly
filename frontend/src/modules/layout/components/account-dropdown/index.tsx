@@ -42,28 +42,27 @@ export default function AccountDropdown({ customer, isLoading = false }: Account
     )
   }
 
-  if (!customer) {
+  // When logged in, show account icon that redirects to /account
+  if (customer) {
     return (
-      <LocalizedClientLink
-        href="/account"
-        className="hover:text-ui-fg-base uppercase  font-bold text-ui-fg-base
-        text-[13px]
-        "
+      <button
+        onClick={() => router.push(`/${countryCode}/account`)}
+        className="flex items-center justify-center p-2 hover:bg-ui-bg-subtle rounded-md transition-colors"
+        aria-label="Go to account"
+        title="Account"
       >
-        LOGIN / REGISTER
-      </LocalizedClientLink>
+        <User size={20} />
+      </button>
     )
   }
 
-  // When logged in, show account icon that redirects to /account
+  // Not logged in - show login link
   return (
-    <button
-      onClick={() => router.push(`/${countryCode}/account`)}
-      className="flex items-center justify-center p-2 hover:bg-ui-bg-subtle rounded-md transition-colors"
-      aria-label="Go to account"
-      title="Account"
+    <LocalizedClientLink
+      href="/account"
+      className="hover:text-ui-fg-base flex items-center relative"
     >
       <User size={20} />
-    </button>
+    </LocalizedClientLink>
   )
 }

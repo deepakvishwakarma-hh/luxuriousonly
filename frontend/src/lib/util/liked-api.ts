@@ -131,7 +131,12 @@ export async function addToLikedAPI(productId: string): Promise<boolean> {
       }
     )
 
-    // Revalidate SWR cache directly - no need for events
+    // Dispatch event to update other components
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("likedUpdated"))
+    }
+
+    // Revalidate SWR cache
     await mutate(LIKED_PRODUCTS_SWR_KEY)
 
     return true
@@ -172,7 +177,12 @@ export async function removeFromLikedAPI(productId: string): Promise<boolean> {
       return false
     }
 
-    // Revalidate SWR cache directly - no need for events
+    // Dispatch event to update other components
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("likedUpdated"))
+    }
+
+    // Revalidate SWR cache
     await mutate(LIKED_PRODUCTS_SWR_KEY)
 
     return true

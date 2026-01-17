@@ -61,7 +61,10 @@ export default function NavHeader({
           <LikedButton />
         </div>
 
-        {/* {cartButton} */}
+        {/* Desktop cart button */}
+        <div className="hidden md:block">
+          {cartButton}
+        </div>
       </div>
     </>
   )

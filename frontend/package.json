@@ -23,7 +23,7 @@
     "@stripe/stripe-js": "^8.2.0",
     "google-auth-library": "^10.5.0",
     "lodash": "^4.17.21",
-    "next": "15.3.6",
+    "next": "^15.5.9",
     "next-sitemap": "^4.2.3",
     "pg": "^8.11.3",
     "qs": "^6.12.1",
