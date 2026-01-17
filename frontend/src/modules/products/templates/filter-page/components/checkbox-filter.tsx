@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import AccordionFilter from "./accordion-filter"
 
 type CheckboxFilterProps = {
@@ -40,8 +41,15 @@ export default function CheckboxFilter({
               <input
                 type="checkbox"
                 checked={isChecked}
-                onChange={() => onChange(value)}
-                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-2 focus:ring-black focus:ring-offset-0 cursor-pointer"
+                onChange={(e) => {
+                  e.preventDefault()
+                  onChange(value)
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onChange(value)
+                }}
+                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-2 focus:ring-black focus:ring-offset-0 cursor-pointer accent-black"
               />
               <span className={`ml-3 text-sm flex-1 ${
                 isChecked ? "text-gray-900 font-medium" : "text-gray-600"
@@ -55,4 +63,5 @@ export default function CheckboxFilter({
     </AccordionFilter>
   )
 }
+
 

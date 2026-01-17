@@ -8,7 +8,7 @@ import SearchQueryIndicator from "./components/search-query-indicator"
 import FilterSidebar from "./components/filter-sidebar"
 import SortControls from "./components/sort-controls"
 import ProductGrid from "./components/product-grid"
-import Pagination from "./components/pagination"
+import InfiniteScroll from "./components/infinite-scroll"
 import { useFilterParams } from "./hooks/use-filter-params"
 import { useProductFilters } from "./hooks/use-product-filters"
 import { usePriceRange } from "./hooks/use-price-range"
@@ -57,7 +57,58 @@ export default function FilterPage({
 
   const products = data?.products || []
   const count = data?.count || 0
-  const filterOptions = data?.filter_options
+  
+  // Get filter options from API response or generate from products
+  const generateFilterOptions = () => {
+    if (data?.filter_options && Object.values(data.filter_options).some(v => v && (Array.isArray(v) ? v.length > 0 : true))) {
+      return data.filter_options
+    }
+    
+    // Fallback: Generate from products
+    const brands = new Map<string, { id: string; name: string; slug: string }>()
+    const categories = new Map<string, { id: string; name: string; handle: string }>()
+    const genders = new Set<string>()
+    const rim_styles = new Set<string>()
+    const sizes = new Set<string>()
+    const frame_materials = new Set<string>()
+    const shapes = new Set<string>()
+    
+    products.forEach((product: any) => {
+      if (product.brand) {
+        brands.set(product.brand.slug, {
+          id: product.brand.id,
+          name: product.brand.name,
+          slug: product.brand.slug,
+        })
+      }
+      if (product.category) {
+        categories.set(product.category.handle, {
+          id: product.category.id,
+          name: product.category.name,
+          handle: product.category.handle,
+        })
+      }
+      if (product.gender) genders.add(product.gender)
+      if (product.rim_style) rim_styles.add(product.rim_style)
+      if (product.size) sizes.add(product.size)
+      if (product.frame_material) frame_materials.add(product.frame_material)
+      if (product.shape) shapes.add(product.shape)
+    })
+    
+    return {
+      brands: Array.from(brands.values()),
+      categories: Array.from(categories.values()),
+      genders: Array.from(genders),
+      rim_styles: Array.from(rim_styles),
+      sizes: Array.from(sizes),
+      frame_materials: Array.from(frame_materials),
+      shapes: Array.from(shapes),
+      shape_filters: [],
+      shape_values: [],
+    }
+  }
+  
+  const filterOptions = generateFilterOptions()
 
   const { priceRange, priceValues, handlePriceChange } = usePriceRange({
     products,
@@ -71,11 +122,13 @@ export default function FilterPage({
     },
   })
 
-  const handlePageChange = (page: number) => {
-    updateFilters({ page: String(page) })
+  const handlePageChange = () => {
+    const nextPage = filters.page + 1
+    updateFilters({ page: String(nextPage) })
   }
 
   const totalPages = Math.ceil(count / 20)
+  const hasMore = filters.page < totalPages
 
   useEffect(() => {
     if (typeof document === "undefined") return
@@ -195,20 +248,21 @@ export default function FilterPage({
               onOpenFilters={() => setShowMobileFilters(true)}
               showViewSelector={!isSmallScreen}
             />
-            <ProductGrid
-              products={products}
-              region={region}
-              countryCode={countryCode}
+            <InfiniteScroll
+              onLoadMore={handlePageChange}
               isLoading={isLoading}
-              error={error}
-              viewMode={viewMode}
-              onRetry={() => mutate()}
-            />
-            <Pagination
-              currentPage={filters.page}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
+              hasMore={hasMore}
+            >
+              <ProductGrid
+                products={products}
+                region={region}
+                countryCode={countryCode}
+                isLoading={isLoading}
+                error={error}
+                viewMode={viewMode}
+                onRetry={() => mutate()}
+              />
+            </InfiniteScroll>
           </div>
         </div>
       </div>

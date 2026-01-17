@@ -9,6 +9,8 @@ import CompareProducts from "@modules/products/components/compare-products"
 import { Heading } from "@medusajs/ui"
 import InteractiveLink from "@modules/common/components/interactive-link"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
+import Breadcrumbs from "@modules/common/components/breadcrumbs"
+
 
 type Props = {
   params: Promise<{ countryCode: string }>
@@ -69,8 +71,15 @@ export default async function ComparePage(props: Props) {
       <div>
         <div className="w-full bg-black py-8 mb-8">
           <div className="content-container text-center text-white">
-            <h1 className="text-3xl font-bold">Compare</h1>
-            <div className="text-sm text-gray-300 mt-1">Home / Compare</div>
+            <h1 className="text-3xl font-bold">Comp</h1>
+            <div className="mt-1">
+              <Breadcrumbs
+                items={[
+                  { label: "Home", href: `/${countryCode}` },
+                  { label: "Compare" },
+                ]}
+              />
+            </div>
           </div>
         </div>
 
@@ -118,7 +127,14 @@ export default async function ComparePage(props: Props) {
       <div className="w-full bg-black py-8 mb-8">
         <div className="content-container text-center text-white">
           <h1 className="text-3xl font-bold">Compare</h1>
-          <div className="text-sm text-gray-300 mt-1">Home / Compare</div>
+          <div className="mt-1">
+            <Breadcrumbs
+              items={[
+                { label: "Home", href: `/${countryCode}` },
+                { label: "Compare" },
+              ]}
+            />
+          </div>
         </div>
       </div>
 

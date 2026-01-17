@@ -87,21 +87,13 @@ const CartDropdown = ({
     >
       <Popover className="relative h-full">
         <PopoverButton className="h-full flex items-center">
-          <div className="flex items-center gap-4">
-            <LocalizedClientLink
-              className="hover:text-ui-fg-base flex items-center relative"
-              href="/cart"
-              data-testid="nav-cart-link"
-            >
-              <WoodMartIcon iconContent="f126" size={20} badge={totalItems} />
-            </LocalizedClientLink>
-            <span className="hidden md:inline text-sm font-bold text-ui-fg-base text-[13px]">
-              {convertToLocale({
-                amount: total || 0,
-                currency_code: currencyCode,
-              })}
-            </span>
-          </div>
+          <LocalizedClientLink
+            className="hover:text-ui-fg-base flex items-center relative"
+            href="/cart"
+            data-testid="nav-cart-link"
+          >
+            <WoodMartIcon iconContent="f126" size={20} badge={totalItems} />
+          </LocalizedClientLink>
         </PopoverButton>
         <Transition
           show={cartDropdownOpen}
