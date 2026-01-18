@@ -1,57 +1,100 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
     container_name: luxuriousonly-postgres
     environment:
-      POSTGRES_USER: medusa
-      POSTGRES_PASSWORD: medusa_password
-      POSTGRES_DB: medusa_db
+      POSTGRES_USER: ${POSTGRES_USER:-medusa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medusa_password}
+      POSTGRES_DB: ${POSTGRES_DB:-luxuriousonly}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medusa"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medusa}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - luxuriousonly-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: luxuriousonly-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - luxuriousonly-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
     container_name: luxuriousonly-backend
     environment:
-      PORT: 9000
+      PORT: ${PORT:-9000}
       NODE_ENV: production
-      MEDUSA_ADMIN_ONBOARDING_TYPE: default
+      MEDUSA_ADMIN_ONBOARDING_TYPE: ${MEDUSA_ADMIN_ONBOARDING_TYPE:-default}
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
-      STORE_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
-      ADMIN_CORS: http://localhost:5173,http://localhost:9000,https://docs.medusajs.com,https://admin.luxuriousonly.com
-      AUTH_CORS: http://localhost:5173,http://localhost:9000,http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
-      JWT_SECRET: supersecret
-      COOKIE_SECRET: supersecret
-      VITE_BACKEND_URL: https://admin.luxuriousonly.com
-      BACKEND_URL: https://admin.luxuriousonly.com
-      VITE_SERVER_ALLOWED_HOSTS: admin.luxuriousonly.com
-      SMTP_HOST: smtp.zeptomail.in
-      SMTP_PORT: 587
-      SMTP_USER: emailapikey
-      SMTP_PASS: PHtE6r1bE+nigzEv9RUAsfbqR87yNIos9e1lfQdOt44TXKIGGk1S+NEvkTXhqB55XPVHEKGSwIxqubuUu+7UcW+4YWsaXWqyqK3sx/VYSPOZsbq6x00asV8Zf0zeVIXmcdFr0CTXuN7eNA==
-      SMTP_FROM: fullstackartists.com
-      SMTP_SECURE: false
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa_password}@postgres:5432/${POSTGRES_DB:-luxuriousonly}}
+      STORE_CORS: ${STORE_CORS:-https://docs.medusajs.com,https://admin.luxuriousonly.com}
+      ADMIN_CORS: ${ADMIN_CORS:-https://docs.medusajs.com,https://admin.luxuriousonly.com}
+      AUTH_CORS: ${AUTH_CORS:-https://docs.medusajs.com,https://admin.luxuriousonly.com}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-supersecret}
+      COOKIE_SECRET: ${COOKIE_SECRET:-supersecret}
+      BACKEND_URL: ${BACKEND_URL:-https://admin.luxuriousonly.com}
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-${BACKEND_URL:-https://admin.luxuriousonly.com}}
+      VITE_SERVER_ALLOWED_HOSTS: ${VITE_SERVER_ALLOWED_HOSTS:-admin.luxuriousonly.com}
+      MEDUSA_STOREFRONT_URL: ${MEDUSA_STOREFRONT_URL:-https://www.brand.luxuriousonly.com}
+      SMTP_HOST: ${SMTP_HOST:-smtp.zeptomail.in}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-emailapikey}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM:-LuxuriousOnly <no-reply@luxuriousonly.com>}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
     ports:
-      - "9000:9000"
+      - "${PORT:-9000}:9000"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      - ./backend:/app
-      - backend_uploads:/app/static
-      - /app/node_modules
+      - backend_uploads:/app/uploads
+      - backend_static:/app/static
     networks:
       - luxuriousonly-network
     healthcheck:
@@ -60,46 +103,80 @@ services:
           "CMD-SHELL",
           "wget --no-verbose --tries=1 --spider http://localhost:9000/health || exit 1",
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
-        NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
-        NEXT_PUBLIC_BASE_URL: https://luxuriousonly.com
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${NEXT_PUBLIC_MEDUSA_BACKEND_URL:-https://admin.luxuriousonly.com}
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://luxuriousonly.com}
     container_name: luxuriousonly-frontend
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
+      PORT: 8000
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: 1
       # Server-side backend URL (for internal Docker network)
-      MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
+      MEDUSA_BACKEND_URL: ${MEDUSA_BACKEND_URL:-http://backend:9000}
       # Client-side backend URL (for browser access)
-      NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://admin.luxuriousonly.com
-      NEXT_PUBLIC_BASE_URL: https://luxuriousonly.com
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${NEXT_PUBLIC_MEDUSA_BACKEND_URL:-https://admin.luxuriousonly.com}
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://luxuriousonly.com}
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
     ports:
-      - "8000:8000"
+      - "${FRONTEND_PORT:-8000}:8000"
     depends_on:
       backend:
         condition: service_healthy
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     networks:
       - luxuriousonly-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8000 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   backend_uploads:
+    driver: local
+  backend_static:
+    driver: local
 
 networks:
   luxuriousonly-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
