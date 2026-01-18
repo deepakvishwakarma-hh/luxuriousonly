@@ -53,16 +53,17 @@ RUN apk add --no-cache wget
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 medusa
 
-# Copy production dependencies
-COPY --from=deps --chown=medusa:nodejs /server/node_modules ./node_modules
+# Copy production dependencies (but we need devDependencies for ts-node and TypeScript support)
+COPY --from=builder --chown=medusa:nodejs /server/node_modules ./node_modules
 
-# Copy built application (Medusa v2 runs from source, no dist directory needed)
+# Copy all application files from builder (excluding node_modules which we already copied)
+# This ensures all config files and source files are present
 COPY --from=builder --chown=medusa:nodejs /server/src ./src
 COPY --from=builder --chown=medusa:nodejs /server/public ./public
 COPY --from=builder --chown=medusa:nodejs /server/package*.json ./
 COPY --from=builder --chown=medusa:nodejs /server/medusa-config.ts ./
 COPY --from=builder --chown=medusa:nodejs /server/tsconfig.json ./
-COPY --from=builder --chown=medusa:nodejs /server/instrumentation.ts ./instrumentation.ts
+COPY --from=builder --chown=medusa:nodejs /server/instrumentation.ts ./
 
 # Create directories for uploads
 RUN mkdir -p /server/uploads /server/static && \
