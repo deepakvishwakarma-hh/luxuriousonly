@@ -64,7 +64,7 @@ export default function Nav() {
           </LocalizedClientLink>
 
           {/* ================= CENTER & RIGHT (Client Components) ================= */}
-          <NavHeader
+          {/* <NavHeader
             onToggleMobileSearch={() => setShowMobileSearch((s) => !s)}
             cartButton={
               <Suspense
@@ -75,10 +75,10 @@ export default function Nav() {
                   </LocalizedClientLink>
                 }
               >
-                {/* <CartButton /> */}
+                <CartButton />
               </Suspense>
             }
-          />
+          /> */}
         </nav>
       </header>
 
