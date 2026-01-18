@@ -1,14 +1,16 @@
 "use client"
 
+import { Suspense, lazy } from "react"
 import { useCustomer } from "@lib/hooks/use-customer"
 import AccountDropdown from "@modules/layout/components/account-dropdown"
 import CompareButton from "@modules/layout/components/compare-button"
 import LikedButton from "@modules/layout/components/liked-button"
-import NavSearch from "@modules/layout/components/nav-search"
 import GoogleTranslate from "@modules/layout/components/google-translate"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import WoodMartIcon from "@modules/common/icons/woodmart-icon"
 
+const NavSearch = lazy(() => import("@modules/layout/components/nav-search"))
+  
 type NavHeaderProps = {
   cartButton: React.ReactNode
   onToggleMobileSearch?: () => void
@@ -24,7 +26,9 @@ export default function NavHeader({
     <>
       {/* ================= CENTER (Desktop Search) ================= */}
       <div className="hidden md:flex flex-1 justify-center px-10">
-        <NavSearch />
+        <Suspense fallback={<div className="h-10 bg-gray-200 animate-pulse rounded w-full max-w-md" />}>
+          <NavSearch />
+        </Suspense>
       </div>
 
       {/* ================= RIGHT ================= */}
