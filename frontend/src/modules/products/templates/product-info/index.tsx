@@ -163,7 +163,7 @@ const ProductInfo = ({
             data-testid="product-availability-status"
           >
             {isAvailable ? (
-              <>Available{eta && ` - ETA: ${eta}`}</>
+              <>Available</>
             ) : (
               "This item is not available"
             )}
