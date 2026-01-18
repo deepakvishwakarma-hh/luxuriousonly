@@ -10,13 +10,17 @@ const regionMapCache = {
   regionMapUpdated: Date.now(),
 }
 
-async function getRegionMap(cacheId: string) {
+async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.StoreRegion> | null> {
   const { regionMap, regionMapUpdated } = regionMapCache
 
   if (!BACKEND_URL) {
-    throw new Error(
-      "Middleware.ts: Error fetching regions. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
-    )
+    if (process.env.NODE_ENV === "development") {
+      console.error(
+        "Middleware.ts: Error fetching regions. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
+      )
+    }
+    // Return cached region map if available, otherwise null
+    return regionMap.size > 0 ? regionMap : null
   }
 
   if (
@@ -63,26 +67,34 @@ async function getRegionMap(cacheId: string) {
 }
 
 
-type IpLocationData = {
-  ip: string
-  city: string
-  region: string
+type GeoJsResponse = {
   country: string
-  loc: string
-  org: string
-  postal: string
-  timezone: string
-  readme: string
 }
 
-const getUserCountryCode = async () => {
-  const ipResponse = await fetch("https://ipinfo.io/json", {
-    headers: {
-      Accept: "application/json",
-    },
-  })
-  const ipLocationData = await ipResponse.json() as IpLocationData
-  return ipLocationData.country.toLowerCase()
+const getUserCountryCode = async (): Promise<string | null> => {
+  try {
+    // Use geojs.io - completely free, no API key required, no rate limits
+    const ipResponse = await fetch("https://get.geojs.io/v1/ip/country.json", {
+      headers: {
+        Accept: "application/json",
+      },
+    })
+
+    if (!ipResponse.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.log("geojs.io response not ok:", ipResponse.status)
+      }
+      return null
+    }
+
+    const geoData = await ipResponse.json() as GeoJsResponse
+    return geoData.country?.toLowerCase() || null
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to fetch country code from geojs.io:", error)
+    }
+    return null
+  }
 }
 
 /**
@@ -93,28 +105,49 @@ const getUserCountryCode = async () => {
 async function getCountryCode(
   request: NextRequest,
   regionMap: Map<string, HttpTypes.StoreRegion | number>,
-) {
+): Promise<string | undefined> {
   try {
-    const ipLocationData = await getUserCountryCode()
-    let countryCode
     const urlCountryCode = request.nextUrl.pathname.split("/")[1]?.toLowerCase()
+
+    // Priority 1: Use country code from URL if it exists in region map
     if (urlCountryCode && regionMap.has(urlCountryCode)) {
-      countryCode = urlCountryCode
-    } else if (ipLocationData && regionMap.has(ipLocationData)) {
-      countryCode = ipLocationData
-    } else if (regionMap.has(DEFAULT_REGION)) {
-      countryCode = DEFAULT_REGION
-    } else if (regionMap.keys().next().value) {
-      countryCode = regionMap.keys().next().value
+      return urlCountryCode
     }
 
-    return countryCode
+    // Priority 2: Try to get country code from IP location
+    const ipCountryCode = await getUserCountryCode()
+
+    console.log("ipCountryCode", ipCountryCode)
+
+    if (ipCountryCode && regionMap.has(ipCountryCode)) {
+      return ipCountryCode
+    }
+
+    // Priority 3: Use default region if available
+    if (regionMap.has(DEFAULT_REGION)) {
+      return DEFAULT_REGION
+    }
+
+    // Priority 4: Use first available region
+    const firstRegion = regionMap.keys().next().value
+    if (firstRegion) {
+      return firstRegion
+    }
+
+    return undefined
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.error(
-        "Middleware.ts: Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
+        "Middleware.ts: Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL.",
+        error
       )
     }
+
+    // Fallback: try to return default region or first available region
+    if (regionMap.has(DEFAULT_REGION)) {
+      return DEFAULT_REGION
+    }
+    return regionMap.keys().next().value
   }
 }
 
@@ -131,10 +164,23 @@ export async function middleware(request: NextRequest) {
 
   let cacheId = cacheIdCookie?.value || crypto.randomUUID()
 
-  const regionMap = await getRegionMap(cacheId)
+  let regionMap: Map<string, HttpTypes.StoreRegion> | null = null
+  try {
+    regionMap = await getRegionMap(cacheId)
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("Middleware.ts: Failed to fetch region map:", error)
+    }
+    // Use cached region map if available
+    regionMap = regionMapCache.regionMap.size > 0 ? regionMapCache.regionMap : null
+  }
 
+  // If no region map is available, skip middleware logic
+  if (!regionMap || regionMap.size === 0) {
+    return NextResponse.next()
+  }
 
-  const countryCode = regionMap && (await getCountryCode(request, regionMap))
+  const countryCode = await getCountryCode(request, regionMap)
 
   const urlHasCountryCode =
     countryCode && request.nextUrl.pathname.split("/")[1].includes(countryCode)

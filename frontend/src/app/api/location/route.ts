@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 
+/**
+ * Location detection API using geojs.io
+ * 
+ * Note: geojs.io is completely free with:
+ * - No API key required
+ * - No rate limits
+ * - Provides country, city, latitude, longitude, and timezone data
+ * 
+ * API endpoint: https://get.geojs.io/v1/ip/geo.json
+ */
 export async function GET(request: NextRequest) {
     try {
-        // Fetch location data from ipinfo.io
-        const response = await fetch("https://ipinfo.io/json", {
+        // Fetch location data from geojs.io (completely free, no API key needed)
+        const response = await fetch("https://get.geojs.io/v1/ip/geo.json", {
             headers: {
                 Accept: "application/json",
             },
@@ -16,7 +26,23 @@ export async function GET(request: NextRequest) {
             throw new Error(`Failed to fetch location: ${response.statusText}`)
         }
 
-        const locationData = await response.json()
+        const geoData = await response.json()
+
+        // Map geojs.io response format to a more standard format
+        // geojs.io returns: { country, city, latitude, longitude, timezone, ip }
+        // We'll return it in a format similar to ipinfo.io for compatibility
+        const locationData = {
+            ip: geoData.ip,
+            country: geoData.country,
+            city: geoData.city,
+            region: geoData.region || "",
+            loc: geoData.latitude && geoData.longitude
+                ? `${geoData.latitude},${geoData.longitude}`
+                : "",
+            latitude: geoData.latitude,
+            longitude: geoData.longitude,
+            timezone: geoData.timezone || "",
+        }
 
         return NextResponse.json(locationData, {
             status: 200,
