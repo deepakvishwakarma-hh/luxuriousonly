@@ -11,7 +11,7 @@
       NODE_ENV: production
       MEDUSA_ADMIN_ONBOARDING_TYPE: default
       HOST: 0.0.0.0
-      DATABASE_URL: postgres://medusa:StrongNewPassword123@host.docker.internal:5433/luxuriousonly
+      DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
       REDIS_URL: redis://host.docker.internal:6379
       STORE_CORS: https://docs.medusajs.com,https://admin.luxuriousonly.com
       ADMIN_CORS: https://docs.medusajs.com,https://admin.luxuriousonly.com
