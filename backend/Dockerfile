@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-WORKDIR /app
+WORKDIR /server
 
 # Install build dependencies
 RUN apk add --no-cache libc6-compat python3 make g++
@@ -14,15 +14,15 @@ COPY package-lock.json* ./
 
 # Install dependencies (use npm ci if lock file exists and is valid, otherwise npm install)
 RUN if [ -f package-lock.json ]; then \
-        npm ci --only=production --prefer-offline --no-audit || npm install --only=production --prefer-offline --no-audit; \
+        npm ci --only=production --legacy-peer-deps || npm install --only=production --legacy-peer-deps; \
     else \
-        npm install --only=production --prefer-offline --no-audit; \
+        npm install --only=production --legacy-peer-deps; \
     fi && \
     npm cache clean --force
 
 # Build stage
 FROM base AS builder
-WORKDIR /app
+WORKDIR /server
 
 # Copy package files
 COPY package*.json ./
@@ -31,9 +31,9 @@ COPY package-lock.json* ./
 # Install all dependencies (including devDependencies for build)
 # Use npm ci if lock file exists and is valid, otherwise npm install
 RUN if [ -f package-lock.json ]; then \
-        npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit; \
+        npm ci --legacy-peer-deps || npm install --legacy-peer-deps; \
     else \
-        npm install --prefer-offline --no-audit; \
+        npm install --legacy-peer-deps; \
     fi
 
 # Copy source code
@@ -44,7 +44,7 @@ RUN npm run build
 
 # Production image
 FROM base AS runner
-WORKDIR /app
+WORKDIR /server
 
 # Install wget for healthcheck
 RUN apk add --no-cache wget
@@ -54,20 +54,20 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 medusa
 
 # Copy production dependencies
-COPY --from=deps --chown=medusa:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=medusa:nodejs /server/node_modules ./node_modules
 
 # Copy built application
-COPY --from=builder --chown=medusa:nodejs /app/dist ./dist
-COPY --from=builder --chown=medusa:nodejs /app/src ./src
-COPY --from=builder --chown=medusa:nodejs /app/public ./public
-COPY --from=builder --chown=medusa:nodejs /app/package*.json ./
-COPY --from=builder --chown=medusa:nodejs /app/medusa-config.ts ./
-COPY --from=builder --chown=medusa:nodejs /app/tsconfig.json ./
-COPY --from=builder --chown=medusa:nodejs /app/instrumentation.ts ./instrumentation.ts
+COPY --from=builder --chown=medusa:nodejs /server/dist ./dist
+COPY --from=builder --chown=medusa:nodejs /server/src ./src
+COPY --from=builder --chown=medusa:nodejs /server/public ./public
+COPY --from=builder --chown=medusa:nodejs /server/package*.json ./
+COPY --from=builder --chown=medusa:nodejs /server/medusa-config.ts ./
+COPY --from=builder --chown=medusa:nodejs /server/tsconfig.json ./
+COPY --from=builder --chown=medusa:nodejs /server/instrumentation.ts ./instrumentation.ts
 
 # Create directories for uploads
-RUN mkdir -p /app/uploads /app/static && \
-    chown -R medusa:nodejs /app/uploads /app/static
+RUN mkdir -p /server/uploads /server/static && \
+    chown -R medusa:nodejs /server/uploads /server/static
 
 USER medusa
 
