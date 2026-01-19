@@ -8,7 +8,7 @@
       POSTGRES_DB: ${POSTGRES_DB:-luxuriousonly}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -64,7 +64,7 @@
     environment:
       PORT: 9000
       NODE_ENV: production
-      MEDUSA_ADMIN_ONBOARDING_TYPE: default
+      MEDUSA_ADMIN_ONBOARDING_TYPE:   
       HOST: 0.0.0.0
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
       REDIS_URL: redis://host.docker.internal:6379
