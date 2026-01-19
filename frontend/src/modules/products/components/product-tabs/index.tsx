@@ -122,26 +122,34 @@ const ProductInfoTab = ({ product, visibleFields, brand }: ProductTabProps) => {
   // If visibleFields provided, render only those. Otherwise fall back to showing all metadata entries.
   const fieldsToRender =
     visibleFields && visibleFields.length > 0
-      ? visibleFields.map((k) => ({
-          key: formatKey(k),
-          value: formatValue(resolveKey(product, k, brand)),
-        }))
+      ? visibleFields
+          .map((k) => ({
+            key: formatKey(k),
+            value: formatValue(resolveKey(product, k, brand)),
+          }))
+          .filter((field) => field.value && field.value !== "-")
       : product.metadata
-      ? Object.entries(product.metadata).map(([key, value]) => ({
-          key: formatKey(key),
-          value: formatValue(value),
-        }))
+      ? Object.entries(product.metadata)
+          .map(([key, value]) => ({
+            key: formatKey(key),
+            value: formatValue(value),
+          }))
+          .filter((field) => field.value && field.value !== "-")
       : []
 
   return (
     <div className="text-small-regular border border-gray-200">
       <div className="flex flex-col">
-        {fieldsToRender.map((field, index) => (
-          <div key={index} className="flex flex-row gap-4 even:border-y">
-            <span className="font-semibold min-w-[50%] p-2">{field.key}</span>
-            <span className="text-ui-fg-base border-l p-2">{field.value}</span>
-          </div>
-        ))}
+        {fieldsToRender.length > 0 ? (
+          fieldsToRender.map((field, index) => (
+            <div key={index} className="flex flex-row gap-4 even:border-y">
+              <span className="font-semibold min-w-[50%] p-2">{field.key}</span>
+              <span className="text-ui-fg-base border-l p-2">{field.value}</span>
+            </div>
+          ))
+        ) : (
+          <div className="p-4 text-gray-500">No details available</div>
+        )}
       </div>
     </div>
   )
