@@ -13,9 +13,9 @@
       HOST: 0.0.0.0
       DATABASE_URL: postgresql://postgres:AhFcwyPhEVBlAcVvJRGctLzCJEnCciSA@turntable.proxy.rlwy.net:41329/railway
       REDIS_URL: redis://host.docker.internal:6379
-      STORE_CORS: https://docs.medusajs.com,https://admin.luxuriousonly.com
-      ADMIN_CORS: https://docs.medusajs.com,https://admin.luxuriousonly.com
-      AUTH_CORS: https://docs.medusajs.com,https://admin.luxuriousonly.com
+      STORE_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
+      ADMIN_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
+      AUTH_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
       JWT_SECRET: supersecret
       COOKIE_SECRET: supersecret
       BACKEND_URL: https://admin.luxuriousonly.com
@@ -45,6 +45,50 @@
       timeout: 10s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://backend:9000
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_BASE_URL: http://localhost:8000
+    container_name: luxuriousonly-frontend
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      HOSTNAME: "0.0.0.0"
+      NEXT_TELEMETRY_DISABLED: 1
+      MEDUSA_BACKEND_URL: http://backend:9000
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+      NEXT_PUBLIC_BASE_URL: https://brand.luxuriousonly.com
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+    networks:
+      - luxuriousonly-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8000 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
     deploy:
       resources:
