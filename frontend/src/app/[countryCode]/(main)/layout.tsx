@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+import { Suspense } from "react"
 
 import { getBaseURL } from "@lib/util/env"
 import { listCartOptions, retrieveCart } from "@lib/data/cart"
@@ -37,7 +38,9 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
 
         <main className="border-dashed flex-1  ml-0 md:ml-[60px]-- w-full h-screen --overflow-y-auto overflow-x-hidden--  ">
           <Nav />
-          <CategoryNavigation />
+          <Suspense fallback={null}>
+            <CategoryNavigation />
+          </Suspense>
           {customer && cart && (
             <CartMismatchBanner customer={customer} cart={cart} />
           )}
