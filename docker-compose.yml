@@ -61,8 +61,8 @@
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://backend:9000
-        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
-        NEXT_PUBLIC_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+        NEXT_PUBLIC_BASE_URL: https://brand.luxuriousonly.com
     container_name: luxuriousonly-frontend
     environment:
       NODE_ENV: production
