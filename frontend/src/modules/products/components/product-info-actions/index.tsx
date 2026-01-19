@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@medusajs/ui"
 import Modal from "@modules/common/components/modal"
 import useToggleState from "@lib/hooks/use-toggle-state"
@@ -293,6 +293,7 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
         isOpen={askQuestionState.state}
         close={askQuestionState.close}
         productId={productId}
+        type="question"
       />
     </div>
   )
@@ -302,14 +303,16 @@ type AskQuestionModalProps = {
   isOpen: boolean
   close: () => void
   productId: string
+  type?: "question" | "query" | "custom_delivery" | "customize_product"
 }
 
-const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) => {
+const AskQuestionModal = ({ isOpen, close, productId, type }: AskQuestionModalProps) => {
   const [formData, setFormData] = useState({
-    type: "question" as "question" | "custom_delivery" | "customize_product",
+    type: (type || "query") as "question" | "query" | "custom_delivery" | "customize_product",
     name: "",
     email: "",
-    subject: "",
+    phone: "",
+    subject: type === "question" ? "Question" : "",
     message: "",
     address_1: "",
     address_2: "",
@@ -322,6 +325,18 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Update formData.type when type prop changes
+  useEffect(() => {
+    if (type) {
+      setFormData((prev) => ({
+        ...prev,
+        type: type,
+        // Set default subject for question type
+        subject: type === "question" ? "Question" : prev.subject,
+      }))
+    }
+  }, [type])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -338,6 +353,50 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
     setIsSubmitting(true)
     setError(null)
 
+    // Frontend validation
+    const validationErrors: string[] = []
+
+    // Always required fields
+    if (!formData.name?.trim()) {
+      validationErrors.push("Name is required")
+    }
+    if (!formData.email?.trim()) {
+      validationErrors.push("Email is required")
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      validationErrors.push("Please enter a valid email address")
+    }
+    if (!formData.phone?.trim()) {
+      validationErrors.push("Phone is required")
+    }
+    if (!formData.message?.trim()) {
+      validationErrors.push("Message is required")
+    }
+
+    // Validation for non-question types
+    if (formData.type !== "question") {
+      if (!formData.subject?.trim()) {
+        validationErrors.push("Subject is required")
+      }
+      if (!formData.address_1?.trim()) {
+        validationErrors.push("Address Line 1 is required")
+      }
+      if (!formData.city?.trim()) {
+        validationErrors.push("City is required")
+      }
+      if (!formData.postal_code?.trim()) {
+        validationErrors.push("Postal Code is required")
+      }
+      if (!formData.country?.trim()) {
+        validationErrors.push("Country is required")
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(". "))
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       const response = await sdk.client.fetch<{ product_query: any }>(
         `/store/product-queries`,
@@ -348,9 +407,10 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
             product_id: productId,
             customer_name: formData.name,
             customer_email: formData.email,
-            subject: formData.subject,
+            customer_mobile: formData.phone,
+            subject: formData.type === "question" ? "Question" : formData.subject || null,
             message: formData.message,
-            address: {
+            address: formData.type === "question" ? null : {
               address_1: formData.address_1,
               address_2: formData.address_2 || null,
               city: formData.city,
@@ -367,10 +427,11 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
       setTimeout(() => {
         setSubmitSuccess(false)
         setFormData({
-          type: "question",
+          type: (type || "query") as "question" | "query" | "custom_delivery" | "customize_product",
           name: "",
           email: "",
-          subject: "",
+          phone: "",
+          subject: type === "question" ? "Question" : "",
           message: "",
           address_1: "",
           address_2: "",
@@ -393,7 +454,7 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
 
   return (
     <Modal isOpen={isOpen} close={close} size="large">
-      <Modal.Title>Ask a Question / Request</Modal.Title>
+      <Modal.Title>Ask a Question</Modal.Title>
       <Modal.Body>
         <div className="w-full max-w-full overflow-hidden">
           {submitSuccess ? (
@@ -414,26 +475,29 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
                   </div>
                 )}
                 
-                <div>
-                  <label
-                    htmlFor="type"
-                    className="block text-sm font-medium mb-1 text-ui-fg-base"
-                  >
-                    Query Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive focus:border-transparent text-sm"
-                  >
-                    <option value="question">Question</option>
-                    <option value="custom_delivery">Custom Delivery Request</option>
-                    <option value="customize_product">Product Customization Request</option>
-                  </select>
-                </div>
+                {!type && (
+                  <div>
+                    <label
+                      htmlFor="type"
+                      className="block text-sm font-medium mb-1 text-ui-fg-base"
+                    >
+                      Query Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="type"
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive focus:border-transparent text-sm"
+                    >
+                      <option value="question">Question</option>
+                      <option value="query">Query</option>
+                      <option value="custom_delivery">Custom Delivery Request</option>
+                      <option value="customize_product">Product Customization Request</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
@@ -453,17 +517,28 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
                     required
                   />
                 </div>
+
+                <Input  
+                  name="phone"
+                  type="tel"
+                  label="Phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                />
                 
-                <div className="grid grid-cols-1 gap-3">
-                  <Input
-                    name="subject"
-                    type="text"
-                    label="Subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
+                {formData.type !== "question" && (
+                  <div className="grid grid-cols-1 gap-3">
+                    <Input
+                      name="subject"
+                      type="text"
+                      label="Subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                )}
                 
                 <div>
                   <label
@@ -484,69 +559,70 @@ const AskQuestionModal = ({ isOpen, close, productId }: AskQuestionModalProps) =
                   />
                 </div>
 
-                <div className="border-t pt-3 mt-3">
-                  <h3 className="text-sm font-semibold mb-3 text-ui-fg-base">Address</h3>
-                  <div className="space-y-3">
-                    <Input
-                      name="address_1"
-                      type="text"
-                      label="Address Line 1"
-                      value={formData.address_1}
-                      onChange={handleChange}
-                      required
-                    />
-                    <Input
-                      name="address_2"
-                      type="text"
-                      label="Address Line 2 (Optional)"
-                      value={formData.address_2}
-                      onChange={handleChange}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {formData.type !== "question" && (
+                  <div className="border-t pt-3 mt-3">
+                    <h3 className="text-sm font-semibold mb-3 text-ui-fg-base">Address</h3>
+                    <div className="space-y-3">
                       <Input
-                        name="city"
+                        name="address_1"
                         type="text"
-                        label="City"
-                        value={formData.city}
+                        label="Address Line 1"
+                        value={formData.address_1}
                         onChange={handleChange}
                         required
                       />
                       <Input
-                        name="state"
+                        name="address_2"
                         type="text"
-                        label="State/Province"
-                        value={formData.state}
+                        label="Address Line 2 (Optional)"
+                        value={formData.address_2}
+                        onChange={handleChange}
+                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input
+                          name="city"
+                          type="text"
+                          label="City"
+                          value={formData.city}
+                          onChange={handleChange}
+                          required
+                        />
+                        <Input
+                          name="state"
+                          type="text"
+                          label="State/Province"
+                          value={formData.state}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input
+                          name="postal_code"
+                          type="text"
+                          label="Postal Code"
+                          value={formData.postal_code}
+                          onChange={handleChange}
+                          required
+                        />
+                        <Input
+                          name="country"
+                          type="text"
+                          label="Country"
+                          value={formData.country}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      <Input
+                        name="country_code"
+                        type="text"
+                        label="Country Code (Optional)"
+                        value={formData.country_code}
                         onChange={handleChange}
                       />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        name="postal_code"
-                        type="text"
-                        label="Postal Code"
-                        value={formData.postal_code}
-                        onChange={handleChange}
-                        required
-                      />
-                      <Input
-                        name="country"
-                        type="text"
-                        label="Country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <Input
-                      name="country_code"
-                      type="text"
-                      label="Country Code (Optional)"
-                      value={formData.country_code}
-                      onChange={handleChange}
-  
-                    />
                   </div>
-                </div>
+                )}
               </form>
             </div>
           )}

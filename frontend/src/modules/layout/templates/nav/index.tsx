@@ -75,7 +75,7 @@ export default function Nav() {
                   </LocalizedClientLink>
                 }
               >
-                <CartButton />
+                {/* <CartButton /> */}
               </Suspense>
             }
           />

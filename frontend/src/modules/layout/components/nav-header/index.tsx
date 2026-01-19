@@ -53,9 +53,9 @@ export default function NavHeader({
         </LocalizedClientLink>
 
         {/* Google Translate Widget */}
-        <div className="hidden md:block">
+        {/* <div className="hidden md:block">
           <GoogleTranslate />
-        </div>
+        </div> */}
 
         {/* Account ONLY on desktop */}
         <div className="hidden md:block">

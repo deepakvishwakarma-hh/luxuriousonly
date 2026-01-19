@@ -1,14 +1,12 @@
 import { Metadata } from "next"
-
 import { getBaseURL } from "@lib/util/env"
-import { listCartOptions, retrieveCart } from "@lib/data/cart"
-// import Aside from "@modules/layout/templates/aside"
-import { retrieveCustomer } from "@lib/data/customer"
-import { StoreCartShippingOption } from "@medusajs/types"
-import CartMismatchBanner from "@modules/layout/components/cart-mismatch-banner"
-import Footer from "@modules/layout/templates/footer"
 import Nav from "@modules/layout/templates/nav"
+import { retrieveCustomer } from "@lib/data/customer"
+import Footer from "@modules/layout/templates/footer"
+import { StoreCartShippingOption } from "@medusajs/types"
+import { listCartOptions, retrieveCart } from "@lib/data/cart"
 import CategoryNavigation from "@modules/layout/templates/category-nav"
+import CartMismatchBanner from "@modules/layout/components/cart-mismatch-banner"
 import FreeShippingPriceNudge from "@modules/shipping/components/free-shipping-price-nudge"
 
 export const metadata: Metadata = {
@@ -33,8 +31,6 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
   return (
     <>
       <div className="w-full h-screen flex--">
-        {/* <Aside /> */}
-
         <main className="border-dashed flex-1  ml-0 md:ml-[60px]-- w-full h-screen --overflow-y-auto overflow-x-hidden--  ">
           <Nav />
           <CategoryNavigation />

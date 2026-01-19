@@ -6,22 +6,22 @@ import { createProductQueryWorkflow } from "../../../workflows/create-product-qu
 import { z } from "zod"
 
 export const PostStoreProductQuerySchema = z.object({
-  type: z.enum(["question", "custom_delivery", "customize_product"]),
-  product_id: z.string(),
-  customer_name: z.string(),
-  customer_email: z.string().email(),
-  customer_mobile: z.string(),
-  subject: z.string(),
-  message: z.string(),
+  type: z.enum(["question", "custom_delivery", "customize_product"]).optional(),
+  product_id: z.string().optional(),
+  customer_name: z.string().optional(),
+  customer_email: z.string().email().optional(),
+  customer_mobile: z.string().optional(),
+  subject: z.string().nullable().optional(),
+  message: z.string().optional(),
   address: z.object({
-    address_1: z.string(),
+    address_1: z.string().optional(),
     address_2: z.string().nullable().optional(),
-    city: z.string(),
+    city: z.string().optional(),
     state: z.string().nullable().optional(),
-    postal_code: z.string(),
-    country: z.string(),
+    postal_code: z.string().optional(),
+    country: z.string().optional(),
     country_code: z.string().nullable().optional(),
-  }),
+  }).nullable().optional(),
 })
 
 type PostStoreProductQueryReq = z.infer<typeof PostStoreProductQuerySchema>
