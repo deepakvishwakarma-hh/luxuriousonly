@@ -23,6 +23,24 @@ import { seoPreviewConfig } from "../../../widgets/seo-preview-config";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
+// Simple external link icon component
+const ExternalLinkIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+    />
+  </svg>
+);
+
 type Brand = {
   id: string;
   name: string;
@@ -247,6 +265,26 @@ const BrandEditPage = () => {
       product.title.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
 
+  // Get storefront URL for frontend link
+  const getStorefrontUrl = () => {
+    return (
+      import.meta.env.VITE_MEDUSA_STOREFRONT_URL ||
+      import.meta.env.VITE_STOREFRONT_URL ||
+      "http://localhost:8000"
+    );
+  };
+  const storefrontUrl = getStorefrontUrl();
+  const defaultCountryCode = "us";
+  const brandFrontendUrl = formData.slug
+    ? `${storefrontUrl}/${defaultCountryCode}/brands/${formData.slug}`
+    : null;
+
+  const handleViewFrontend = () => {
+    if (brandFrontendUrl) {
+      window.open(brandFrontendUrl, "_blank");
+    }
+  };
+
   return (
     <Container className="max-w-7xl mx-auto">
       {/* Header */}
@@ -261,6 +299,17 @@ const BrandEditPage = () => {
           </Button>
           <Heading level="h1">Edit Brand</Heading>
         </div>
+        {formData.slug && (
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={handleViewFrontend}
+            className="flex items-center gap-2"
+          >
+            <ExternalLinkIcon className="w-4 h-4" />
+            View on Frontend
+          </Button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
