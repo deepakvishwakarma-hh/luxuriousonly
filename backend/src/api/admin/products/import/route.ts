@@ -8,6 +8,7 @@ type ImportRequestBody = {
   csv?: string
   file?: string
   filename?: string
+  exchangeRates?: Record<string, number>
 }
 
 // Define all extra fields from EXTRA FEILDS.md
@@ -1229,15 +1230,24 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // Group products by name
     const productGroups = groupProductsByName(productsForGrouping)
 
-    // Fetch exchange rates optimistically (falls back to hardcoded rates if fetch fails)
+    // Use exchange rates from request if provided, otherwise fetch them optimistically
     let exchangeRates: Record<string, number>
-    try {
-      exchangeRates = await getExchangeRates()
-      console.log(`Using exchange rates for ${Object.keys(exchangeRates).length} currencies`)
-    } catch (error: any) {
-      // Extra safety: if getExchangeRates somehow throws, use fallback
-      console.warn('Error fetching exchange rates, using fallback rates:', error.message || error)
-      exchangeRates = FALLBACK_EXCHANGE_RATES
+    if (body.exchangeRates && typeof body.exchangeRates === 'object') {
+      // Use rates provided from frontend (user-edited rates)
+      exchangeRates = body.exchangeRates
+      // Ensure USD is always 1.0
+      exchangeRates.USD = 1.0
+      console.log(`Using exchange rates from request for ${Object.keys(exchangeRates).length} currencies`)
+    } else {
+      // Fetch exchange rates optimistically (falls back to hardcoded rates if fetch fails)
+      try {
+        exchangeRates = await getExchangeRates()
+        console.log(`Fetched exchange rates for ${Object.keys(exchangeRates).length} currencies`)
+      } catch (error: any) {
+        // Extra safety: if getExchangeRates somehow throws, use fallback
+        console.warn('Error fetching exchange rates, using fallback rates:', error.message || error)
+        exchangeRates = FALLBACK_EXCHANGE_RATES
+      }
     }
 
     // Second pass: build create arrays (grouped by name, variants based on size)

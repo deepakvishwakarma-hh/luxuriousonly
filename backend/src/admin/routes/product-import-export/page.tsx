@@ -11,9 +11,10 @@ import {
   Textarea,
   Tabs,
   Select,
+  Input,
 } from "@medusajs/ui";
 import { sdk } from "../../lib/config";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 const ProductImportExportPage = () => {
@@ -22,10 +23,85 @@ const ProductImportExportPage = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [sampleProductCount, setSampleProductCount] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Exchange rate modal state
+  const [isExchangeRateModalOpen, setIsExchangeRateModalOpen] = useState(false);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [pendingCsv, setPendingCsv] = useState<string>("");
+  const [rateError, setRateError] = useState<string>("");
+
+  // Fetch exchange rates from API
+  const fetchExchangeRates = async (): Promise<Record<string, number>> => {
+    setIsLoadingRates(true);
+    setRateError("");
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Exchange rate API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.rates && typeof data.rates === 'object') {
+        const rates: Record<string, number> = {
+          USD: 1.0, // Base currency
+        };
+
+        // Add all rates from API response
+        for (const [currency, rate] of Object.entries(data.rates)) {
+          if (typeof rate === 'number' && rate > 0) {
+            rates[currency.toUpperCase()] = rate;
+          }
+        }
+
+        return rates;
+      } else {
+        throw new Error('Invalid exchange rate API response format');
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        setRateError('Exchange rate API timeout. Please check your connection.');
+      } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        setRateError(`Network error: ${error.message}`);
+      } else {
+        setRateError(`Failed to fetch exchange rates: ${error.message || error}`);
+      }
+      // Return fallback rates
+      return {
+        USD: 1.0,
+        EUR: 0.92,
+        GBP: 0.79,
+        INR: 83.0,
+      };
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  // Open exchange rate modal and fetch rates
+  const openExchangeRateModal = async (csv: string) => {
+    setPendingCsv(csv);
+    setIsExchangeRateModalOpen(true);
+    const rates = await fetchExchangeRates();
+    setExchangeRates(rates);
+  };
 
   // Import mutation
   const importMutation = useMutation({
-    mutationFn: async (csv: string) => {
+    mutationFn: async (data: { csv: string; exchangeRates?: Record<string, number> }) => {
+      const { csv, exchangeRates } = data;
       try {
         // Use fetch directly to have better control over error handling
         const baseUrl = import.meta.env.VITE_BACKEND_URL || "/";
@@ -45,6 +121,7 @@ const ProductImportExportPage = () => {
             body: JSON.stringify({
               csv,
               filename: "products-import.csv",
+              exchangeRates: exchangeRates || undefined,
             }),
           });
         } catch (networkError: any) {
@@ -348,8 +425,6 @@ const ProductImportExportPage = () => {
       return;
     }
 
-    setIsImporting(true);
-
     try {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -363,8 +438,8 @@ const ProductImportExportPage = () => {
             return;
           }
           setCsvContent(content);
-          // Auto-submit after reading
-          importMutation.mutate(content);
+          // Open exchange rate modal before importing
+          openExchangeRateModal(content);
         } catch (contentError: any) {
           toast.error("Failed to process file content", {
             description: contentError.message || "An error occurred while processing the file content",
@@ -406,8 +481,21 @@ const ProductImportExportPage = () => {
       });
       return;
     }
+    // Open exchange rate modal before importing
+    openExchangeRateModal(csvContent);
+  };
+
+  // Confirm import with exchange rates
+  const handleConfirmImport = () => {
+    if (!pendingCsv.trim()) {
+      toast.error("CSV content is missing", {
+        description: "Please try again",
+      });
+      return;
+    }
+    setIsExchangeRateModalOpen(false);
     setIsImporting(true);
-    importMutation.mutate(csvContent);
+    importMutation.mutate({ csv: pendingCsv, exchangeRates });
   };
 
   // Generate sample CSV data with specified number of products (each row creates a new product)
@@ -1038,6 +1126,109 @@ const ProductImportExportPage = () => {
           </Tabs.Content>
         </Tabs>
       </div>
+
+      {/* Exchange Rate Modal */}
+      {isExchangeRateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Heading level="h2">Exchange Rates</Heading>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    onClick={async () => {
+                      const rates = await fetchExchangeRates();
+                      setExchangeRates(rates);
+                    }}
+                    disabled={isLoadingRates}
+                  >
+                    {isLoadingRates ? "Loading..." : "Refresh Rates"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setIsExchangeRateModalOpen(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
+              </div>
+
+              <Text className="text-ui-fg-subtle mb-4">
+                Review and edit exchange rates before importing products. Rates are fetched from the API and can be adjusted if needed.
+              </Text>
+
+              {rateError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <Text className="text-red-800 text-sm">{rateError}</Text>
+                  <Text className="text-red-600 text-xs mt-1">
+                    Using fallback rates. You can edit them below.
+                  </Text>
+                </div>
+              )}
+
+              {isLoadingRates ? (
+                <div className="py-8 text-center">
+                  <Text>Loading exchange rates...</Text>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {Object.entries(exchangeRates)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([currency, rate]) => (
+                        <div key={currency} className="flex flex-col gap-1">
+                          <Label htmlFor={`rate-${currency}`}>
+                            {currency} (1 USD = {currency === "USD" ? "1.0" : rate.toFixed(4)})
+                          </Label>
+                          <Input
+                            id={`rate-${currency}`}
+                            type="number"
+                            step="0.0001"
+                            value={rate}
+                            onChange={(e) => {
+                              const newRate = parseFloat(e.target.value);
+                              if (!isNaN(newRate) && newRate > 0) {
+                                setExchangeRates({
+                                  ...exchangeRates,
+                                  [currency]: newRate,
+                                });
+                              }
+                            }}
+                            disabled={currency === "USD"}
+                            className={currency === "USD" ? "bg-gray-100" : ""}
+                          />
+                        </div>
+                      ))}
+                  </div>
+
+                  {Object.keys(exchangeRates).length === 0 && (
+                    <div className="py-4 text-center text-ui-fg-subtle">
+                      <Text>No exchange rates available. Please add rates manually.</Text>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsExchangeRateModalOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleConfirmImport}
+                      disabled={Object.keys(exchangeRates).length === 0}
+                    >
+                      Confirm & Import
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Toaster />
     </Container>
