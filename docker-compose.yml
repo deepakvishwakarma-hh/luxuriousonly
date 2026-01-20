@@ -1,5 +1,5 @@
 ﻿services:
-    backend:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -9,7 +9,7 @@
     environment:
       PORT: 9000
       NODE_ENV: production
-      MEDUSA_ADMIN_ONBOARDING_TYPE:   
+      MEDUSA_ADMIN_ONBOARDING_TYPE:
       HOST: 0.0.0.0
       DATABASE_URL: postgresql://Luxury2123134:KPFEbH5C6WrdLEdw@localhost:5432/luxury2123
       REDIS_URL: redis://host.docker.internal:6379
@@ -36,11 +36,7 @@
     networks:
       - luxuriousonly-network
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:9000/health || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -80,11 +76,7 @@
     networks:
       - luxuriousonly-network
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:8000 || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
