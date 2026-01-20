@@ -55,6 +55,16 @@ export async function PUT(
         const { id } = req.params
         const { name, slug, description, meta_title, meta_desc, image_url } = req.validatedBody
 
+        console.log("Brand update request:", {
+            id,
+            name,
+            slug,
+            description,
+            meta_title,
+            meta_desc,
+            image_url,
+        })
+
         const { result } = await updateBrandWorkflow(req.scope).run({
             input: {
                 id,
@@ -67,8 +77,17 @@ export async function PUT(
             },
         })
 
+        console.log("Brand update result:", JSON.stringify(result, null, 2))
+        
+        // Ensure we return the updated brand with image_url
+        const updatedBrand = result?.brand
+        if (updatedBrand) {
+            console.log("Updated brand image_url:", updatedBrand.image_url)
+        }
+
         res.json(result)
     } catch (error) {
+        console.error("Error updating brand:", error)
         const statusCode = error instanceof Error && error.message.includes("not found") ? 404 : 400
         res.status(statusCode).json({
             message: error instanceof Error ? error.message : "An error occurred while updating the brand",

@@ -14,11 +14,14 @@ import {
   Textarea,
   Label,
   DropdownMenu,
+  toast,
 } from "@medusajs/ui";
 import { sdk } from "../../lib/config";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { HttpTypes } from "@medusajs/framework/types";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 type Brand = {
   id: string;
@@ -336,14 +339,56 @@ const BrandsPage = () => {
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    rows={4}
-                  />
+                  <div className="rounded-lg border border-gray-300 overflow-hidden bg-white shadow-inner">
+                    <style>{`
+                      .ql-container {
+                        min-height: 200px;
+                        max-height: 400px;
+                        font-size: 14px;
+                      }
+                      .ql-editor {
+                        min-height: 200px;
+                        padding: 16px;
+                      }
+                      .ql-toolbar {
+                        border-top: none;
+                        border-left: none;
+                        border-right: none;
+                        border-bottom: 1px solid #e5e7eb;
+                        padding: 12px;
+                        background-color: #f9fafb;
+                      }
+                      .ql-container {
+                        border-bottom: none;
+                        border-left: none;
+                        border-right: none;
+                        border-top: none;
+                      }
+                      .ql-editor.ql-blank::before {
+                        color: #9ca3af;
+                        font-style: normal;
+                      }
+                    `}</style>
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.description || ""}
+                      onChange={(value) =>
+                        setFormData({ ...formData, description: value })
+                      }
+                      placeholder="Enter brand description here..."
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ["bold", "italic", "underline", "strike"],
+                          [{ list: "ordered" }, { list: "bullet" }],
+                          [{ color: [] }, { background: [] }],
+                          [{ align: [] }],
+                          ["link", "image"],
+                          ["clean"],
+                        ],
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -429,6 +474,7 @@ const BrandsPage = () => {
                           uploadFormData.append("file", file);
 
                           // Use native fetch for file uploads
+                          // Don't set Content-Type header - browser will set it with boundary
                           const baseUrl =
                             import.meta.env.VITE_BACKEND_URL || "/";
                           const response = await fetch(
@@ -437,13 +483,20 @@ const BrandsPage = () => {
                               method: "POST",
                               body: uploadFormData,
                               credentials: "include", // Include cookies for auth
+                              // Don't set Content-Type - let browser set it with boundary
                             }
                           );
 
                           if (!response.ok) {
-                            throw new Error(
-                              `Upload failed: ${response.statusText}`
-                            );
+                            const errorText = await response.text();
+                            let errorMessage = `Upload failed: ${response.statusText}`;
+                            try {
+                              const errorData = JSON.parse(errorText);
+                              errorMessage = errorData.message || errorMessage;
+                            } catch {
+                              errorMessage = errorText || errorMessage;
+                            }
+                            throw new Error(errorMessage);
                           }
 
                           const data = (await response.json()) as {
@@ -457,13 +510,16 @@ const BrandsPage = () => {
                               image_url: data.url,
                             }));
                             setImagePreview(data.url);
+                            toast.success("Image uploaded successfully");
                           } else {
                             throw new Error("No URL returned from upload");
                           }
-                        } catch (error) {
+                        } catch (error: any) {
                           console.error("Error uploading image:", error);
-                          setImagePreview(null);
-                          alert("Failed to upload image. Please try again.");
+                          setImagePreview(formData.image_url || null);
+                          toast.error(
+                            error?.message || "Failed to upload image. Please try again."
+                          );
                         }
                       }}
                     />

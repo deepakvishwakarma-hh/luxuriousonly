@@ -66,6 +66,7 @@ export const POST = async (
                     const uploadedFiles = await fileModuleService.createFiles([fileData])
 
                     if (!uploadedFiles || uploadedFiles.length === 0) {
+                        console.error("File upload failed: No files returned from fileModuleService")
                         return res.status(500).json({
                             message: "Failed to upload file"
                         })
@@ -75,11 +76,14 @@ export const POST = async (
                     const uploadedFile = uploadedFiles[0]
                     let fileUrl = uploadedFile.url
 
+                    console.log("File uploaded successfully. Original URL:", fileUrl)
+                    console.log("Uploaded file data:", JSON.stringify(uploadedFile, null, 2))
+
                     // Fix URL if it contains localhost or is a relative path
                     const backendUrl = process.env.BACKEND_URL
                     if (backendUrl) {
                         const normalizedBackendUrl = backendUrl.replace(/\/$/, '')
-                        
+
                         // If URL contains localhost or 127.0.0.1, replace it with backend URL
                         if (fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')) {
                             try {
@@ -104,6 +108,8 @@ export const POST = async (
                             }
                         }
                     }
+
+                    console.log("Final file URL:", fileUrl)
 
                     res.json({
                         url: fileUrl,

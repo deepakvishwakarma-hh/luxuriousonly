@@ -27,7 +27,15 @@ export const updateBrandStep = createStep(
             id: [input.id],
         })
 
-        const brand = await brandModuleService.updateBrands(input)
+        console.log("Updating brand with input:", JSON.stringify(input, null, 2))
+
+        const updatedBrands = await brandModuleService.updateBrands(input)
+        
+        // updateBrands returns an array, get the first (and only) result
+        const brand = Array.isArray(updatedBrands) ? updatedBrands[0] : updatedBrands
+
+        console.log("Brand updated successfully:", JSON.stringify(brand, null, 2))
+        console.log("Brand image_url after update:", brand?.image_url)
 
         return new StepResponse(brand, originalBrands[0])
     },
