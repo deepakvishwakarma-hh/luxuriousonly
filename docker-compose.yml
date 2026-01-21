@@ -11,7 +11,7 @@
       NODE_ENV: production
       MEDUSA_ADMIN_ONBOARDING_TYPE:
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://Luxury2123134:KPFEbH5C6WrdLEdw@localhost:5432/luxury2123
+      DATABASE_URL: postgresql://luxuryone123w:LJNk3jrLBfCZZ5ZN@localhost:5432/luxuryone123w
       REDIS_URL: redis://host.docker.internal:6379
       STORE_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
       ADMIN_CORS: http://localhost:8000,https://docs.medusajs.com,https://admin.luxuriousonly.com
@@ -57,7 +57,7 @@
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://backend:9000
-        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_7ad58452281751c42b4d6ad573ba6271910609ad48199ad8b1b15ef495a365ea
         NEXT_PUBLIC_BASE_URL: https://brand.luxuriousonly.com
     container_name: luxuriousonly-frontend
     environment:
@@ -67,7 +67,7 @@
       NEXT_TELEMETRY_DISABLED: 1
       MEDUSA_BACKEND_URL: http://backend:9000
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_e71f37f08cb8091285da83451d131a5ed93f496262d3e2a76f66381f5c7256cb
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_7ad58452281751c42b4d6ad573ba6271910609ad48199ad8b1b15ef495a365ea
       NEXT_PUBLIC_BASE_URL: https://brand.luxuriousonly.com
     ports:
       - "8000:8000"
