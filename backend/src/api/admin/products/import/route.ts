@@ -107,7 +107,7 @@ const REQUIRED_FIELDS = [
   "subtitle",
   "description",
   "stock",
-  "sale_price",
+  "sales_price",
   "regular_price",
   "categories",
   "images",
@@ -715,7 +715,7 @@ async function processProductRow(
   // Threshold: if price > 10000, it's likely already in cents (e.g., 70000 = $700.00)
   // But we also check if it's divisible by 100 to avoid false positives
   if (salePrice > 10000 && salePrice % 100 === 0) {
-    console.warn(`Warning: sale_price (${salePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${salePrice / 100}`)
+    console.warn(`Warning: sales_price (${salePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${salePrice / 100}`)
     salePrice = salePrice / 100
   }
   if (regularPrice > 10000 && regularPrice % 100 === 0 && regularPrice !== salePrice) {
@@ -725,7 +725,7 @@ async function processProductRow(
 
   const usdPrice = salePrice > 0 ? salePrice : regularPrice
 
-  console.log(`Price parsing - sale_price raw: "${salePriceRaw}", parsed: ${salePrice}, regular_price raw: "${regularPriceRaw}", parsed: ${regularPrice}, final USD price: ${usdPrice}`)
+  console.log(`Price parsing - sales_price raw: "${salePriceRaw}", parsed: ${salePrice}, regular_price raw: "${regularPriceRaw}", parsed: ${regularPrice}, final USD price: ${usdPrice}`)
 
   // Build prices array for all supported currencies with automatic conversion
   const prices: Array<{ amount: number; currency_code: string }> = []
@@ -778,7 +778,7 @@ async function processProductRow(
     // Safety check: if price seems too large (likely already in cents), divide by 100
     // Threshold: if price > 10000 and divisible by 100, it's likely already in cents
     if (variantSalePrice > 10000 && variantSalePrice % 100 === 0) {
-      console.warn(`Warning: variant sale_price (${variantSalePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${variantSalePrice / 100}`)
+      console.warn(`Warning: variant sales_price (${variantSalePrice}) seems too large and is divisible by 100. Treating as cents and converting to dollars: ${variantSalePrice / 100}`)
       variantSalePrice = variantSalePrice / 100
     }
     if (variantRegularPrice > 10000 && variantRegularPrice % 100 === 0 && variantRegularPrice !== variantSalePrice) {
@@ -1014,7 +1014,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const salesChannelIdIndex = normalizedHeaders.findIndex((h) => h === "sales_channel_id" || h === "sales channel id")
     const locationIdIndex = normalizedHeaders.findIndex((h) => h === "location_id" || h === "location id")
     const stockIndex = normalizedHeaders.findIndex((h) => h === "stock")
-    const salePriceIndex = normalizedHeaders.findIndex((h) => h === "sale_price")
+    const salePriceIndex = normalizedHeaders.findIndex((h) => h === "sales_price")
     const regularPriceIndex = normalizedHeaders.findIndex((h) => h === "regular_price")
     const publishedIndex = normalizedHeaders.findIndex((h) => h === "published")
     const sizeIndex = normalizedHeaders.findIndex((h) => h === "size")
