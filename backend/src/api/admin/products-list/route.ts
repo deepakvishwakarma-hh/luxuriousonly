@@ -13,13 +13,14 @@ export async function GET(
 
     // Use queryConfig from middleware (populated by createFindParams)
     // Fallback to manual parsing if not available
-    const limit = req.queryConfig?.take || (req.query.limit ? parseInt(req.query.limit as string) : 50);
-    const offset = req.queryConfig?.skip || (req.query.offset ? parseInt(req.query.offset as string) : 0);
+    const limit = req.queryConfig?.pagination?.take || (req.query.limit ? parseInt(req.query.limit as string) : 50);
+    const offset = req.queryConfig?.pagination?.skip || (req.query.offset ? parseInt(req.query.offset as string) : 0);
 
     // Query products with images and variants
     const queryConfig: any = {
       entity: "product",
-      fields: [
+      ...req.queryConfig, // Spread first to allow field overrides
+      fields: req.queryConfig?.fields || [
         "id",
         "title",
         "thumbnail",
@@ -29,7 +30,6 @@ export async function GET(
       ],
       take: limit,
       skip: offset,
-      ...req.queryConfig, // Spread to allow field overrides and other config
     };
 
     const {
@@ -54,7 +54,7 @@ export async function GET(
     let usdCode = "usd";
     try {
       const currencies = await currencyModule.listCurrencies({
-        code: "usd",
+        code: ["usd"],
       });
       const usdCurrency = currencies?.[0];
       usdCode = usdCurrency?.code || "usd";
@@ -130,63 +130,40 @@ export async function GET(
       }
     }
 
-    // Transform products to include first image, title, stock, and USD price
+    // Transform products to include first image, title, and USD price
     const transformedProducts = products.map((product: any) => {
-        // Get first image
-        const firstImage = product.images?.[0]?.url || product.thumbnail || null;
+      // Get first image
+      const firstImage = product.images?.[0]?.url || product.thumbnail || null;
 
-        // Calculate total stock across all variants using pre-queried inventory data
-        let totalStock = 0;
-        if (product.variants && product.variants.length > 0) {
-          product.variants.forEach((variant: any) => {
-            const inventoryItemId = variantToInventoryItemMap.get(variant.id);
-            if (inventoryItemId) {
-              const stock = inventoryItemStockMap.get(inventoryItemId) || 0;
-              totalStock += stock;
-            }
-          });
-        }
+      // Get USD price from first variant
+      let usdPrice: number | null = null;
+      let usdPriceFormatted: string | null = null;
 
-        // Get USD price from first variant
-        let usdPrice: number | null = null;
-        let usdPriceFormatted: string | null = null;
+      if (product.variants?.[0]?.price_set?.prices) {
+        const usdPriceObj = product.variants[0].price_set.prices.find(
+          (p: any) => p.currency_code?.toLowerCase() === usdCode.toLowerCase()
+        );
 
-        if (product.variants?.[0]?.price_set?.prices) {
-          const usdPriceObj = product.variants[0].price_set.prices.find(
-            (p: any) => p.currency_code?.toLowerCase() === usdCode.toLowerCase()
-          );
-
-          if (usdPriceObj) {
-            usdPrice = usdPriceObj.amount;
-            // Format price (amount is in smallest currency unit, e.g., cents)
+        if (usdPriceObj) {
+          usdPrice = usdPriceObj.amount;
+          // Format price (amount is in smallest currency unit, e.g., cents)
+          if (usdPrice !== null && usdPrice !== undefined) {
             usdPriceFormatted = new Intl.NumberFormat("en-US", {
               style: "currency",
               currency: "USD",
             }).format(usdPrice);
           }
         }
+      }
 
-        // Debug logging for stock
-        if (totalStock === 0 && product.variants && product.variants.length > 0) {
-          const variantIds = product.variants.map((v: any) => v.id).join(", ");
-          console.log(`[products-list] Product "${product.title}" (${product.id}) has ${product.variants.length} variants [${variantIds}] but stock is 0`);
-          product.variants.forEach((variant: any) => {
-            const invItemId = variantToInventoryItemMap.get(variant.id);
-            const stock = invItemId ? inventoryItemStockMap.get(invItemId) : null;
-            console.log(`  - Variant ${variant.id}: inventoryItemId=${invItemId || "none"}, stock=${stock !== null ? stock : "N/A"}`);
-          });
-        }
-
-        return {
-          id: product.id,
-          title: product.title,
-          image: firstImage,
-          stock: totalStock,
-          price: usdPrice,
-          price_formatted: usdPriceFormatted,
-        };
-      })
-    );
+      return {
+        id: product.id,
+        title: product.title,
+        image: firstImage,
+        price: usdPrice,
+        price_formatted: usdPriceFormatted,
+      };
+    });
 
     res.json({
       products: transformedProducts || [],
@@ -202,8 +179,12 @@ export async function GET(
   }
 }
 
+type DeleteProductsBody = {
+  ids: string[];
+};
+
 export async function DELETE(
-  req: MedusaRequest,
+  req: MedusaRequest<DeleteProductsBody>,
   res: MedusaResponse
 ) {
   try {
@@ -217,9 +198,9 @@ export async function DELETE(
 
     const productModuleService = req.scope.resolve(Modules.PRODUCT);
 
-    // Delete products one by one (Medusa may not support batch delete)
+    // Delete products - deleteProducts accepts an array of IDs
     const deletePromises = ids.map((id: string) =>
-      productModuleService.deleteProducts(id).catch((error: any) => {
+      productModuleService.deleteProducts([id]).catch((error: any) => {
         console.error(`Failed to delete product ${id}:`, error);
         return { id, error: error.message };
       })
