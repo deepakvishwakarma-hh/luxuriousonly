@@ -22,6 +22,7 @@ import { PostStoreProductQuerySchema } from "./store/product-queries/route";
 import { GetAdminProductQueriesSchema } from "./admin/product-queries/route";
 import { UpdateProductQueryStatusSchema } from "./admin/product-queries/[id]/route";
 import { UpdateVariantPricesSchema } from "./admin/variants/[variantId]/prices/route";
+import { GetProductsListSchema } from "./admin/products-list/route";
 // import { GetAdminBrandsSchema } from "./admin/brands/route";
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 
@@ -322,6 +323,23 @@ export default defineMiddlewares({
       matcher: "/admin/variants/:variantId/prices",
       method: ["GET"],
       // No body validation needed for GET requests
+    },
+    {
+      matcher: "/admin/products-list",
+      method: ["GET"],
+      middlewares: [
+        validateAndTransformQuery(GetProductsListSchema, {
+          isList: true,
+          defaults: [
+            "id",
+            "title",
+            "thumbnail",
+            "images.*",
+            "variants.id",
+            "variants.price_set.prices.*",
+          ],
+        }),
+      ],
     },
 
 
