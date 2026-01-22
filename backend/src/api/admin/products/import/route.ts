@@ -535,7 +535,7 @@ function groupProductsByName(
 }
 
 // Process a single product row and return product data
-// Can create variants for products with same name but different sizes
+// Each row creates an independent product with a single variant
 async function processProductRow(
   row: string[],
   headers: string[],
@@ -1192,43 +1192,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       })
     }
 
-    // Process rows and group by product name (same name = same product, different sizes = variants)
+    // Process rows independently - each row becomes a separate product
     const BATCH_SIZE = 200
     const productsToCreate: any[] = []
     const productLocationStockMap: Array<{ locationId: string; stock: number; sku?: string }> = []
     const skuToLocationStockMap = new Map<string, { locationId: string; stock: number }>()
-
-    // First pass: collect all products for grouping
-    const productsForGrouping: Array<{ name: string; rowIndex: number; data: any }> = []
-
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      const row = rows[rowIndex]
-      if (row.length < headers.length) {
-        // Pad row if needed
-        while (row.length < headers.length) {
-          row.push("")
-        }
-      }
-
-      const name = row[productNameIndex]?.trim()
-      if (!name) continue // Skip empty rows
-
-      // Get SKU if available
-      const sku = skuIndex !== -1 ? row[skuIndex]?.trim() : undefined
-
-      // Store row data for processing
-      const rowData = { row, sku, name }
-
-      // Add to grouping array
-      productsForGrouping.push({
-        name,
-        rowIndex,
-        data: rowData,
-      })
-    }
-
-    // Group products by name
-    const productGroups = groupProductsByName(productsForGrouping)
 
     // Use exchange rates from request if provided, otherwise fetch them optimistically
     let exchangeRates: Record<string, number>
@@ -1250,33 +1218,40 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
-    // Second pass: build create arrays (grouped by name, variants based on size)
+    // Process each row independently as a separate product
     const processingErrors: Array<{ rowIndex: number; productName: string; error: string }> = []
 
-    for (const [groupKey, groupProducts] of productGroups.entries()) {
-      if (groupProducts.length === 0) continue
+    // Resolve File module service for image downloads (once for all rows)
+    const fileModuleService = req.scope.resolve(Modules.FILE)
+    const backendUrl = process.env.BACKEND_URL
 
-      // First product in group becomes the main product
-      const mainProductData = groupProducts[0]
-      const { rowIndex: mainRowIndex, data: mainRowData } = mainProductData
-      const { row: mainRow, sku: mainSku, name: mainName } = mainRowData
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex]
+      if (row.length < headers.length) {
+        // Pad row if needed
+        while (row.length < headers.length) {
+          row.push("")
+        }
+      }
 
-      // Remaining products become variants (if they have different sizes)
-      const variantProducts = groupProducts.slice(1)
+      const name = row[productNameIndex]?.trim()
+      if (!name) continue // Skip empty rows
 
-      // Process main product with variants
-      let mainProductProcessed: any = null
+      // Get SKU if available
+      const sku = skuIndex !== -1 ? row[skuIndex]?.trim() : undefined
+
+      // Store row data for processing
+      const rowData = { row, sku, name }
+
+      // Process each row as an independent product (no variants from other rows)
+      let productProcessed: any = null
       try {
-        // Resolve File module service for image downloads
-        const fileModuleService = req.scope.resolve(Modules.FILE)
-        const backendUrl = process.env.BACKEND_URL
-
-        mainProductProcessed = await processProductRow(
-          mainRow,
+        productProcessed = await processProductRow(
+          row,
           headers,
           normalizedHeaders,
-          mainRowIndex,
-          mainRowData,
+          rowIndex,
+          rowData,
           categoryNameToIdMap,
           brandNameToIdMap,
           allSalesChannels,
@@ -1296,7 +1271,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           regularPriceIndex,
           publishedIndex,
           sizeIndex,
-          variantProducts.map((vp) => vp.data), // variant data
+          [], // No variant rows - each product is independent
           currencyList, // supported currencies
           fileModuleService, // File module service for image downloads
           backendUrl, // Backend URL for fixing local URLs
@@ -1305,59 +1280,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       } catch (rowError: any) {
         const errorMessage = rowError instanceof Error ? rowError.message : String(rowError)
         processingErrors.push({
-          rowIndex: mainRowIndex + 1, // +1 because rowIndex is 0-based but users see 1-based
-          productName: mainName || "Unknown",
+          rowIndex: rowIndex + 1, // +1 because rowIndex is 0-based but users see 1-based
+          productName: name || "Unknown",
           error: errorMessage,
         })
-        console.error(`Error processing product at row ${mainRowIndex + 1} (${mainName}):`, rowError)
+        console.error(`Error processing product at row ${rowIndex + 1} (${name}):`, rowError)
         continue // Skip this product and continue with the next
       }
 
-      if (mainProductProcessed) {
-        const { productData, locationStock, brandId } = mainProductProcessed
+      if (productProcessed) {
+        const { productData, locationStock, brandId } = productProcessed
 
-        // Store location/stock for all variants (main + grouped variants)
-        productLocationStockMap.push(locationStock) // Main product
-        if (mainSku) {
-          skuToLocationStockMap.set(mainSku, { locationId: locationStock.locationId, stock: locationStock.stock })
+        // Store location/stock for this product
+        productLocationStockMap.push(locationStock)
+        if (sku) {
+          skuToLocationStockMap.set(sku, { locationId: locationStock.locationId, stock: locationStock.stock })
         }
 
-        // Add variant stocks
-        for (const variantProduct of variantProducts) {
-          const { data: variantRowData } = variantProduct
-          const variantRow = variantRowData.row
-          const variantSku = skuIndex !== -1 ? variantRow[skuIndex]?.trim() : undefined
-
-          // Get variant location and stock
-          let variantLocationId = defaultLocationId
-          if (locationIdIndex !== -1) {
-            const csvLocationId = variantRow[locationIdIndex]?.trim()
-            if (csvLocationId) {
-              const locationExists = allStockLocations.some((loc) => loc.id === csvLocationId)
-              if (locationExists) {
-                variantLocationId = csvLocationId
-              }
-            }
-          }
-
-          let variantStock = 0
-          if (stockIndex !== -1) {
-            const csvStock = variantRow[stockIndex]?.trim()
-            if (csvStock) {
-              variantStock = parseInt(csvStock) || 0
-            }
-          }
-
-          productLocationStockMap.push({ locationId: variantLocationId, stock: variantStock, sku: variantSku })
-          if (variantSku) {
-            skuToLocationStockMap.set(variantSku, { locationId: variantLocationId, stock: variantStock })
-          }
-        }
-
-        // Store price information for each variant to update after creation
+        // Store price information for the variant to update after creation
         const variantPricesMap = new Map<string, Array<{ amount: number; currency_code: string }>>()
 
-        // Store prices for all variants
+        // Store prices for the variant (only one variant per product now)
         if (productData.variants && productData.variants.length > 0) {
           productData.variants.forEach((variant: any) => {
             if (variant.sku && variant.prices && variant.prices.length > 0) {
