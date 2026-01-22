@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { BRAND_MODULE } from "../../../../modules/brand"
 
 // Define all extra fields from EXTRA FEILDS.md
 const ESTIMATED_DELIVERY_FIELDS = [
@@ -151,14 +153,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "subtitle",
         "thumbnail",
         "metadata",
-        "created_at",
-        "updated_at",
         "images.*",
         "categories.*",
         "variants.id",
         "variants.sku",
-        "sales_channels_link.sales_channel_id",
-        "sales_channels.id",
+        "variants.price_set.prices.amount",
+        "variants.price_set.prices.currency_code",
       ],
     }
 
@@ -173,50 +173,63 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       metadata: { count } = {},
     } = await query.graph(queryConfig)
 
-    // CSV Headers - Base fields + SKU + Images + All extra fields + Sales Channel ID + Location ID + Stock (no variant fields)
-    // Filter out unwanted fields from ALL_EXTRA_FIELDS
-    const excludedFields = [
-      "gtin",
-      "weight",
-      "length",
-      "width",
-      "height",
-      "tags",
-      "thumbnail",
-      "lens_height",
-      "department",
-      "days_of_delivery",
-      "max_days_of_delivery",
-      "days_of_delivery_out_of_stock",
-      "max_days_of_delivery_out_of_stock",
-      "delivery_note",
-      "disabled_days",
-      "pattern",
-      "multipack",
-      "is_bundle",
-      "availablity_date",
-      "adult_content",
-    ]
-    const filteredExtraFields = ALL_EXTRA_FIELDS.filter((field) => !excludedFields.includes(field))
+    // Query all brands to create a product_id to brand_name map
+    const productIdToBrandNameMap = new Map<string, string>()
+    try {
+      // Query all brands with their products
+      const { data: allBrands } = await query.graph({
+        entity: "brand",
+        fields: ["id", "name", "products.id"],
+      })
 
-    const headers = [
+      if (allBrands && Array.isArray(allBrands)) {
+        for (const brand of allBrands) {
+          if (brand.products && Array.isArray(brand.products)) {
+            for (const product of brand.products) {
+              if (product && product.id && brand.name) {
+                productIdToBrandNameMap.set(product.id, brand.name)
+              }
+            }
+          }
+        }
+      }
+    } catch (brandError) {
+      console.warn("Failed to query brands, continuing without brand names:", brandError)
+    }
+
+    // CSV Headers - Match REQUIRED_FIELDS from import exactly
+    // Required fields from import route
+    const REQUIRED_FIELDS = [
+      "id",
       "product_id",
-      "Title",
-      "Description",
-      "Handle",
-      "SKU",
-      "Status",
-      "Subtitle",
-      "Images",
-      "Categories",
-      "sales_channel_id",
-      "location_id",
+      "type",
+      "sku",
+      "name",
+      "subtitle",
+      "description",
       "stock",
-      "purchase_cost",
-      ...filteredExtraFields,
-      "Created At",
-      "Updated At",
+      "sales_price",
+      "regular_price",
+      "categories",
+      "images",
+      "brand",
+      "model",
+      "gender",
+      "rim_style",
+      "shape",
+      "frame_material",
+      "size",
+      "lens_width",
+      "leng_bridge",
+      "arm_length",
+      "condition",
+      "keywords",
+      "age_group",
+      "region_availability",
+      "published",
     ]
+
+    const headers = REQUIRED_FIELDS
 
     // Build CSV content
     const csvRows = [headers.join(",")]
@@ -225,21 +238,30 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     for (const product of products || []) {
       const metadata = product.metadata || {}
 
-      // Extract sales channel ID
-      let salesChannelId = ""
-      if ((product as any).sales_channels_link?.[0]?.sales_channel_id) {
-        salesChannelId = (product as any).sales_channels_link[0].sales_channel_id
-      } else if ((product as any).sales_channels?.[0]?.id) {
-        salesChannelId = (product as any).sales_channels[0].id
-      }
-
-      // Extract SKU from first variant
+      // Extract SKU, prices, and stock from first variant
       let sku = ""
-      let locationId = ""
       let stock = ""
+      let salesPrice = ""
+      let regularPrice = ""
+      
       if (product.variants && product.variants.length > 0) {
         const firstVariant = product.variants[0]
         sku = firstVariant.sku || ""
+
+        // Extract prices from variant (prices are stored in cents, convert to dollars)
+        if (firstVariant.price_set?.prices && Array.isArray(firstVariant.price_set.prices)) {
+          const prices = firstVariant.price_set.prices
+          // Find USD price (or first price if USD not found)
+          const usdPrice = prices.find((p: any) => p.currency_code?.toLowerCase() === "usd") || prices[0]
+          if (usdPrice) {
+            // Convert from cents to dollars
+            const priceInDollars = usdPrice.amount / 100
+            // For now, use the same price for both sales_price and regular_price
+            // In a real scenario, you might have separate sale/regular prices
+            regularPrice = priceInDollars.toString()
+            salesPrice = priceInDollars.toString()
+          }
+        }
 
         // Query inventory levels separately for the first variant
         if (firstVariant.id) {
@@ -267,7 +289,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
               if (inventoryLevels && inventoryLevels.length > 0) {
                 const firstLevel = inventoryLevels[0] as any
-                locationId = firstLevel.location_id || ""
                 stock = firstLevel.stocked_quantity?.toString() || "0"
               }
             }
@@ -278,7 +299,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         }
       }
 
-      // Extract images (comma-separated URLs) - use first image as thumbnail
+      // Extract images (comma-separated URLs)
       let imagesValue = ""
       if (product.images && Array.isArray(product.images) && product.images.length > 0) {
         imagesValue = product.images.map((img: any) => img.url || "").filter(Boolean).join(",")
@@ -290,44 +311,70 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         categoriesValue = product.categories.map((cat: any) => cat.name || "").filter(Boolean).join(",")
       }
 
-      // Extract purchase_cost from metadata
-      const purchaseCost = getMetadataValue(metadata, "purchase_cost") || ""
+      // Extract required fields from metadata or product data
+      const type = getMetadataValue(metadata, "type") || ""
+      // Get brand name from brand relationship, fallback to metadata
+      let brand = productIdToBrandNameMap.get(product.id) || ""
+      if (!brand) {
+        brand = getMetadataValue(metadata, "brand") || ""
+      }
+      const model = getMetadataValue(metadata, "model") || ""
+      const gender = getMetadataValue(metadata, "gender") || ""
+      const rimStyle = getMetadataValue(metadata, "rim_style") || ""
+      const shape = getMetadataValue(metadata, "shape") || ""
+      const frameMaterial = getMetadataValue(metadata, "frame_material") || ""
+      const size = getMetadataValue(metadata, "size") || ""
+      const lensWidth = getMetadataValue(metadata, "lens_width") || ""
+      const lengBridge = getMetadataValue(metadata, "leng_bridge") || ""
+      const armLength = getMetadataValue(metadata, "arm_length") || ""
+      const condition = getMetadataValue(metadata, "condition") || ""
+      const keywords = getMetadataValue(metadata, "keywords") || ""
+      const ageGroup = getMetadataValue(metadata, "age_group") || ""
+      const regionAvailability = getMetadataValue(metadata, "region_availability") || ""
+      const published = product.status === "published" ? "true" : "false"
 
-      // Create one row per product (variants are handled automatically)
+      // Handle region_availability as comma-separated string if it's an array
+      let regionAvailabilityValue = regionAvailability
+      if (typeof regionAvailability === "string" && regionAvailability.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(regionAvailability)
+          if (Array.isArray(parsed)) {
+            regionAvailabilityValue = parsed.join(",")
+          }
+        } catch (e) {
+          // If parsing fails, use as is
+        }
+      }
+
+      // Create row matching REQUIRED_FIELDS order exactly
       const row = [
-        product.id || "",
-        product.title || "",
-        product.description || "",
-        product.handle || "",
-        sku,
-        product.status || "",
-        product.subtitle || "",
-        imagesValue,
-        categoriesValue,
-        salesChannelId,
-        locationId,
-        stock,
-        purchaseCost,
-        // Add filtered extra fields from metadata
-        ...filteredExtraFields.map((field) => {
-          const value = getMetadataValue(metadata, field)
-          
-          // Special handling for region_availability - always return as comma-separated string
-          if (field === "region_availability") {
-            if (Array.isArray(value)) {
-              return value.join(",")
-            }
-            return value || ""
-          }
-          
-          // Handle arrays and objects
-          if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
-            return JSON.stringify(value)
-          }
-          return value
-        }),
-        product.created_at || "",
-        product.updated_at || "",
+        product.id || "", // id
+        product.id || "", // product_id (same as id)
+        type, // type
+        sku, // sku
+        product.title || "", // name
+        product.subtitle || "", // subtitle
+        product.description || "", // description
+        stock, // stock
+        salesPrice, // sales_price
+        regularPrice, // regular_price
+        categoriesValue, // categories
+        imagesValue, // images
+        brand, // brand
+        model, // model
+        gender, // gender
+        rimStyle, // rim_style
+        shape, // shape
+        frameMaterial, // frame_material
+        size, // size
+        lensWidth, // lens_width
+        lengBridge, // leng_bridge
+        armLength, // arm_length
+        condition, // condition
+        keywords, // keywords
+        ageGroup, // age_group
+        regionAvailabilityValue, // region_availability
+        published, // published
       ]
       csvRows.push(row.map(escapeCsvField).join(","))
     }
