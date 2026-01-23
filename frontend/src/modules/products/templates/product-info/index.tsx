@@ -104,11 +104,32 @@ const ProductInfo = ({
   // Use ETA from region metadata if available, otherwise calculate from product metadata based on stock status
   const eta = availability?.eta ?? getETA(product, isInStock, hasBackorder)
 
-  // Derive item number by taking the first three words of the product title
+  // Derive item number from brandname + model + color_code + size
   const itemNo = (() => {
-    if (!product?.title) return "N/A"
-    const words = product.title.split(/\s+/).filter(Boolean)
-    return words.slice(0, 3).join(" ")
+    const parts: string[] = []
+    
+    // Get brandname
+    if (brand?.name) {
+      parts.push(brand.name)
+    }
+    
+    // Get model from metadata
+    if (product.metadata?.model) {
+      parts.push(String(product.metadata.model))
+    }
+    
+    // Get color_code from metadata
+    if (product.metadata?.color_code) {
+      parts.push(String(product.metadata.color_code))
+    }
+    
+    // Get size from metadata
+    if (product.metadata?.size) {
+      parts.push(String(product.metadata.size))
+    }
+    
+    // Return joined parts or fallback
+    return parts.length > 0 ? parts.join(" ") : "N/A"
   })()
 
   return (
@@ -142,6 +163,12 @@ const ProductInfo = ({
           >
             {product.title}
           </Heading>
+
+          {product.subtitle && (
+            <p className="text-sm sm:text-base text-ui-fg-subtle font-medium">
+              {product.subtitle}
+            </p>
+          )}
 
           <p className="text-sm font-medium">Item No : {itemNo}</p>
         </div>

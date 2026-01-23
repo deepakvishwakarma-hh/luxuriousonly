@@ -116,7 +116,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 "department",
               ]}
             />
-            <ProductInfoActions productId={product.id} />
+            <ProductInfoActions productId={product.id} product={product} />
           </div>
         </div>
       </div>

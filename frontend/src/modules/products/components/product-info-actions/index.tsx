@@ -9,15 +9,22 @@ import WoodMartIcon from "@modules/common/icons/woodmart-icon"
 import { sdk } from "@lib/config"
 import { FiShare2, FiCopy } from "react-icons/fi"
 import { FaFacebookF, FaTwitter, FaWhatsapp } from "react-icons/fa"
+import { HttpTypes } from "@medusajs/types"
 
 type ProductInfoActionsProps = {
   productId: string
+  product?: HttpTypes.StoreProduct
 }
 
-const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
+const ProductInfoActions = ({ productId, product }: ProductInfoActionsProps) => {
   const sizeGuideState = useToggleState(false)
   const deliveryReturnState = useToggleState(false)
   const askQuestionState = useToggleState(false)
+
+  // Get size chart data from product metadata
+  const lensWidth = product?.metadata?.lens_width ? String(product.metadata.lens_width) : null
+  const lensBridge = product?.metadata?.lens_bridge ? String(product.metadata.lens_bridge) : null
+  const armLength = product?.metadata?.arm_length ? String(product.metadata.arm_length) : null
 
   // Modal state for the Share popup
   const [shareModalOpen, setShareModalOpen] = React.useState(false)
@@ -191,7 +198,7 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
                   />
                 </div>
                 <h3 className="text-sm font-semibold text-center text-ui-fg-base">
-                  Lens Width: 52 mm
+                  Lens Width: {lensWidth || "N/A"}
                 </h3>
               </div>
               <div className="flex-1 flex flex-col border border-gray-300 rounded p-4">
@@ -203,7 +210,7 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
                   />
                 </div>
                 <h3 className="text-sm font-semibold text-center text-ui-fg-base">
-                  Lens bridge: 18 mm
+                  Lens bridge: {lensBridge || "N/A"}
                 </h3>
               </div>
               <div className="flex-1 flex flex-col border border-gray-300 rounded p-4">
@@ -215,7 +222,7 @@ const ProductInfoActions = ({ productId }: ProductInfoActionsProps) => {
                   />
                 </div>
                 <h3 className="text-sm font-semibold text-center text-ui-fg-base">
-                  Arm length: 145 mm
+                  Arm length: {armLength || "N/A"}
                 </h3>
               </div>
             </div>
