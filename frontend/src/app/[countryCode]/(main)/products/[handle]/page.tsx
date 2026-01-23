@@ -218,9 +218,10 @@ export default async function ProductPage(props: Props) {
   }
 
   // Fetch brands, reviews, and availability optimistically (in parallel with product)
+  // Fetch more reviews for structured data (up to 10 for Google rich results)
   const [brand, reviewSummary, availability] = await Promise.all([
     getBrandsByProductId(pricedProduct.id),
-    getProductReviews(pricedProduct.id, { limit: 1, offset: 0 }).catch(
+    getProductReviews(pricedProduct.id, { limit: 10, offset: 0 }).catch(
       () => null
     ),
     getProductAvailability({
@@ -236,6 +237,14 @@ export default async function ProductPage(props: Props) {
   const baseURL = getBaseURL()
   const productUrl = `${baseURL}/${params.countryCode}/products/${params.handle}`
 
+  // Get product images for Google rich results (prioritize multiple images)
+  const productImages =
+    pricedProduct.images && pricedProduct.images.length > 0
+      ? pricedProduct.images.map((img) => img.url)
+      : pricedProduct.thumbnail
+      ? [pricedProduct.thumbnail]
+      : []
+
   // Build structured data for SEO (JSON-LD) - remove undefined fields
   const productStructuredData: any = {
     "@context": "https://schema.org",
@@ -245,9 +254,7 @@ export default async function ProductPage(props: Props) {
       pricedProduct.description ||
       pricedProduct.subtitle ||
       pricedProduct.title,
-    image:
-      pricedProduct.images?.map((img) => img.url) ||
-      (pricedProduct.thumbnail ? [pricedProduct.thumbnail] : []),
+    image: productImages,
   }
 
   // Add optional fields only if they exist
@@ -286,6 +293,39 @@ export default async function ProductPage(props: Props) {
 
   if (pricedProduct.categories?.[0]?.name) {
     productStructuredData.category = pricedProduct.categories[0].name
+  }
+
+  // Add review ratings and reviews for Google rich results
+  if (reviewSummary && reviewSummary.count > 0 && reviewSummary.average_rating > 0) {
+    productStructuredData.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: reviewSummary.average_rating.toString(),
+      reviewCount: reviewSummary.count.toString(),
+      bestRating: "5",
+      worstRating: "1",
+    }
+
+    // Add individual reviews (Google recommends at least 1-2 reviews)
+    if (reviewSummary.reviews && reviewSummary.reviews.length > 0) {
+      productStructuredData.review = reviewSummary.reviews
+        .slice(0, 5) // Limit to 5 reviews for structured data
+        .map((review) => ({
+          "@type": "Review",
+          reviewRating: {
+            "@type": "Rating",
+            ratingValue: review.rating.toString(),
+            bestRating: "5",
+            worstRating: "1",
+          },
+          author: {
+            "@type": "Person",
+            name: `${review.first_name} ${review.last_name}`.trim() || "Anonymous",
+          },
+          reviewBody: review.content,
+          ...(review.title && { name: review.title }),
+          datePublished: review.created_at,
+        }))
+    }
   }
 
   // Breadcrumb structured data
