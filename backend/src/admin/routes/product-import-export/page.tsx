@@ -530,10 +530,10 @@ const ProductImportExportPage = () => {
       "age_group",
       "region_availability",
       "published",
+      "color_code",
     ];
 
     // Sample products - products with same name but different sizes become variants
-    // Note: color_code will be extracted from third word of name (e.g., "Classic" from "Ray-Ban Aviator Classic Black")
     const sampleProducts = [
       {
         id: "1",
@@ -566,6 +566,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
       {
         id: "2",
@@ -598,6 +599,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
       {
         id: "3",
@@ -630,6 +632,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
       {
         id: "4",
@@ -661,6 +664,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "MAT",
       },
       {
         id: "5",
@@ -692,6 +696,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "MAT",
       },
       {
         id: "6",
@@ -723,6 +728,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "MAT",
       },
       {
         id: "7",
@@ -755,6 +761,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
       {
         id: "8",
@@ -787,6 +794,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
       {
         id: "9",
@@ -819,6 +827,7 @@ const ProductImportExportPage = () => {
         age_group: "Adult",
         region_availability: "de,us,in,fr,it,gb,es",
         published: "1",
+        color_code: "BLK",
       },
     ];
 
@@ -916,6 +925,7 @@ const ProductImportExportPage = () => {
         product.age_group,
         product.region_availability || "",
         product.published,
+        product.color_code || "",
       ];
       csvRows.push(row.map(escapeCsvField).join(","));
     });

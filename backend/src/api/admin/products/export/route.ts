@@ -227,6 +227,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       "age_group",
       "region_availability",
       "published",
+      "color_code",
     ]
 
     const headers = REQUIRED_FIELDS
@@ -331,6 +332,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       const keywords = getMetadataValue(metadata, "keywords") || ""
       const ageGroup = getMetadataValue(metadata, "age_group") || ""
       const regionAvailability = getMetadataValue(metadata, "region_availability") || ""
+      const colorCode = getMetadataValue(metadata, "color_code") || ""
       const published = product.status === "published" ? "true" : "false"
 
       // Handle region_availability as comma-separated string if it's an array
@@ -375,6 +377,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         ageGroup, // age_group
         regionAvailabilityValue, // region_availability
         published, // published
+        colorCode, // color_code
       ]
       csvRows.push(row.map(escapeCsvField).join(","))
     }

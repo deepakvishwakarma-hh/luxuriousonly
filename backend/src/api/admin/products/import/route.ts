@@ -572,12 +572,6 @@ async function processProductRow(
   // Extract metadata
   const metadata = extractMetadata(headers, row)
 
-  // Extract color_code from third word of title (name)
-  const nameWords = name.trim().split(/\s+/)
-  if (nameWords.length >= 3) {
-    metadata.color_code = nameWords[2]
-  }
-
   // Get sales channel ID from CSV or use default
   let salesChannelId = defaultSalesChannelId
   if (salesChannelIdIndex !== -1) {
@@ -808,12 +802,6 @@ async function processProductRow(
     }
 
     const variantMetadata = extractMetadata(headers, variantRow)
-
-    // Extract color_code from third word of title for variant
-    const variantNameWords = name.trim().split(/\s+/)
-    if (variantNameWords.length >= 3) {
-      variantMetadata.color_code = variantNameWords[2]
-    }
 
     // Parse variant images from CSV
     // Wrap in try-catch to ensure variant image processing errors don't break product import
