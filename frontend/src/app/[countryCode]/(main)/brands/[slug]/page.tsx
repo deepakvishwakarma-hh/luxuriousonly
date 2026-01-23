@@ -1,10 +1,10 @@
 import { Metadata } from "next"
+import { getBaseURL } from "@lib/util/env"
 import { notFound } from "next/navigation"
-import { getBrandProductsBySlug } from "@lib/data/brands"
 import { getRegion } from "@lib/data/regions"
 import { filterProducts } from "@lib/data/products"
-import { getBaseURL } from "@lib/util/env"
 import { websiteConfig } from "@lib/website.config"
+import { getBrandProductsBySlug } from "@lib/data/brands"
 import BrandPage from "@modules/products/templates/brand-page"
 
 type Props = {
@@ -45,11 +45,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     region?.countries?.find((c) => c.iso_2 === countryCode)?.display_name ||
     countryCode.toUpperCase()
 
-  // Build title and description
-  // Use meta_title if available, but ensure it uses company name instead of "Medusa Store"
-  const title = brand.meta_title
-    ? brand.meta_title.replace(/Medusa Store/gi, companyName)
-    : `${brand.name} | ${companyName}`
+  // Build title and description - use meta_title and meta_desc directly
+  const title = brand.meta_title || `${brand.name} | ${companyName}`
   const description =
     brand.meta_desc ||
     brand.description ||
@@ -290,6 +287,8 @@ export default async function BrandProductsPage(props: Props) {
         region={region}
         brandSlug={slug}
         brandName={brand.name}
+        brandMetaTitle={brand.meta_title || undefined}
+        brandMetaDesc={brand.meta_desc || undefined}
         brandImage={brand.image_url || undefined}
         brandDescription={brand.description || undefined}
         initialData={initialData}

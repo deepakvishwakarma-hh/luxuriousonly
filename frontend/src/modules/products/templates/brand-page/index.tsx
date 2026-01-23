@@ -80,18 +80,20 @@ function ProductPreviewClient({
         </div>
 
         <div className="flex-1 flex flex-col justify-between txt-compact-medium mt-3 px-4 pb-4">
-          <p
-            className="text-ui-fg-subtle text-center text-sm max-h-12 overflow-hidden"
-            data-testid="product-title"
-          >
-            {product.title}
-          </p>
-          {product.brand && (
-            <p className="text-ui-fg-subtle text-center font-bold">
-              {product.brand.name}
+          <div className="space-y-1">
+            {product.brand && (
+              <p className="text-ui-fg-subtle text-center font-semibold text-xs uppercase tracking-wide font-urbanist">
+                {product.brand.name}
+              </p>
+            )}
+            <p
+              className="text-gray-900 text-center text-sm font-medium leading-tight max-h-12 overflow-hidden font-urbanist"
+              data-testid="product-title"
+            >
+              {product.title}
             </p>
-          )}
-          <div className="flex items-center justify-center gap-x-2">
+          </div>
+          <div className="flex items-center justify-center gap-x-2 mt-2">
             {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
           </div>
           <div className="mt-3">
@@ -111,6 +113,8 @@ type BrandPageProps = {
   region: HttpTypes.StoreRegion
   brandSlug: string
   brandName?: string
+  brandMetaTitle?: string
+  brandMetaDesc?: string
   brandImage?: string
   brandDescription?: string
   initialData?: FilterProductsResponse
@@ -141,6 +145,8 @@ export default function BrandPage({
   region,
   brandSlug,
   brandName,
+  brandMetaTitle,
+  brandMetaDesc,
   brandImage,
   brandDescription,
   initialData,
@@ -483,36 +489,38 @@ export default function BrandPage({
   )
 
   return (
-    <div className="content-container py-8">
+    <div className="px-5 py-8">
       {/* Brand Header */}
-      {(brandName || brandImage || brandDescription) && (
-        <div className="mb-8 pb-8 border-b">
-          <div className="flex flex-col items-center gap-6">
-            {/* Brand Image (optional) */}
-            {/* {brandImage && (
-        <img
-          src={brandImage}
-          alt={brandName || "Brand"}
-          className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-lg border"
-        />
-      )} */}
-
-            <div className="text-center">
+      {(brandName || brandMetaTitle || brandImage || brandMetaDesc || brandDescription) && (
+        <div className="mb-12 pb-8 border-b border-gray-200">
+          <div className="flex flex-col items-center gap-6">            
+            {brandImage && (
+              <div className="mb-4">
+                <img 
+                  src={brandImage} 
+                  alt={brandName || "Brand"} 
+                  className="h-24 w-auto object-contain"
+                />
+              </div>
+            )}
+            <div className="text-center space-y-4 max-w-3xl mx-auto">
               {brandName && (
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight text-gray-900 font-urbanist">
                   {brandName}
                 </h1>
               )}
 
-              {brandDescription && (
-                <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
-                  {brandDescription}
+              {(brandMetaDesc || brandDescription) && (
+                <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
+                  {brandMetaDesc || brandDescription}
                 </p>
               )}
 
-              <p className="text-sm text-gray-500">
-                {count} {count === 1 ? "product" : "products"}
-              </p>
+              <div className="pt-2">
+                <p className="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider font-urbanist">
+                  {count} {count === 1 ? "product" : "products"} available
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -535,12 +543,12 @@ export default function BrandPage({
             />
 
             <div className={`fixed top-0 left-0 h-full w-80 max-w-[85%] bg-white shadow-xl transform transition-transform`} style={{ zIndex: 9999 }}>
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 className="text-base font-bold">Filters</h2>
+              <div className="flex items-center justify-between p-5 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900 font-urbanist">Filters</h2>
                 <button
                   onClick={() => setShowMobileFilters(false)}
                   aria-label="Close filters"
-                  className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -603,32 +611,41 @@ export default function BrandPage({
         {/* Main Content */}
         <div className="flex-1">
           {/* Sort and Results Count */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
             <div>
-              <p className="text-sm text-ui-fg-subtle text-center sm:text-left">
-                {loading ? "Loading..." : `${count} products found`}
+              <p className="text-sm sm:text-base font-medium text-gray-700 text-center sm:text-left font-urbanist">
+                {loading ? (
+                  <span className="text-gray-500">Loading...</span>
+                ) : (
+                  <span>
+                    <span className="font-semibold text-gray-900">{count}</span>{" "}
+                    {count === 1 ? "product" : "products"} found
+                  </span>
+                )}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
               <button
                 onClick={() => setShowMobileFilters(true)}
-                className="inline-flex items-center gap-2 p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden flex-shrink-0"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors lg:hidden flex-shrink-0 font-medium text-sm font-urbanist"
                 aria-label="Open filters"
                 aria-haspopup="dialog"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <span className="text-sm font-medium">Filters</span>
+                <span>Filters</span>
               </button>
-              <label className="text-sm font-medium hidden sm:inline">Sort by:</label>
+              <label className="text-sm font-medium text-gray-700 hidden sm:inline font-urbanist">
+                Sort by:
+              </label>
               <select
                 value={`${filters.order}_${filters.orderDirection}`}
                 onChange={(e) => {
                   const [order, direction] = e.target.value.split("_")
                   handleSortChange(order, direction)
                 }}
-                className="px-3 py-2 border border-ui-border-base rounded-md focus:outline-none focus:ring-2 focus:ring-ui-fg-interactive w-full sm:w-auto flex-1 sm:flex-none min-w-0"
+                className="px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full sm:w-auto flex-1 sm:flex-none min-w-[180px] text-sm font-medium font-urbanist"
               >
                 <option value="created_at_desc">Newest First</option>
                 <option value="created_at_asc">Oldest First</option>
@@ -642,27 +659,28 @@ export default function BrandPage({
 
           {/* Products Grid */}
           {error ? (
-            <div className="text-center py-12">
-              <p className="text-ui-fg-destructive">
+            <div className="text-center py-16">
+              <p className="text-red-600 font-medium mb-4 font-urbanist">
                 Error loading products. Please try again.
               </p>
               <button
                 onClick={() => mutate()}
-                className="mt-4 px-4 py-2 bg-ui-bg-interactive text-ui-fg-on-interactive rounded-md hover:bg-ui-bg-interactive-hover"
+                className="px-6 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium text-sm font-urbanist"
               >
                 Retry
               </button>
             </div>
           ) : loading ? (
-            <div className="text-center py-12">
-              <p className="text-ui-fg-subtle">Loading products...</p>
+            <div className="text-center py-16">
+              <p className="text-gray-500 font-medium font-urbanist">Loading products...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-ui-fg-subtle">No products found</p>
+            <div className="text-center py-16">
+              <p className="text-gray-500 font-medium text-lg font-urbanist">No products found</p>
+              <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product: any) => (
                 <ProductPreviewClient
                   key={product.id}
@@ -676,25 +694,26 @@ export default function BrandPage({
 
           {/* Pagination */}
           {count > 20 && (
-            <div className="flex justify-center gap-2 mt-8">
+            <div className="flex justify-center items-center gap-3 mt-12 pt-8 border-t border-gray-200">
               <button
                 onClick={() =>
                   updateFilters({ page: String(Math.max(1, filters.page - 1)) })
                 }
                 disabled={filters.page === 1}
-                className="px-4 py-2 border border-ui-border-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ui-bg-subtle-hover"
+                className="px-5 py-2.5 border border-gray-300 rounded-md bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium text-sm font-urbanist"
               >
                 Previous
               </button>
-              <span className="px-4 py-2">
-                Page {filters.page} of {Math.ceil(count / 20)}
+              <span className="px-4 py-2 text-sm font-medium text-gray-700 font-urbanist">
+                Page <span className="font-semibold">{filters.page}</span> of{" "}
+                <span className="font-semibold">{Math.ceil(count / 20)}</span>
               </span>
               <button
                 onClick={() =>
                   updateFilters({ page: String(filters.page + 1) })
                 }
                 disabled={filters.page >= Math.ceil(count / 20)}
-                className="px-4 py-2 border border-ui-border-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ui-bg-subtle-hover"
+                className="px-5 py-2.5 border border-gray-300 rounded-md bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium text-sm font-urbanist"
               >
                 Next
               </button>
