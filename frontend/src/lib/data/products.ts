@@ -503,3 +503,73 @@ export const getProductsByIds = async ({
     return []
   }
 }
+
+
+
+export const getSameModalProducts = async ({
+  modal,
+  countryCode,
+  regionId,
+}: {
+  modal: string
+  countryCode: string
+  regionId: string
+}) => {
+  try {
+    if (!countryCode && !regionId) {
+      throw new Error("Country code or region ID is required")
+    }
+
+    let region: HttpTypes.StoreRegion | undefined | null
+
+    if (countryCode) {
+      region = await getRegion(countryCode)
+    } else {
+      region = await retrieveRegion(regionId!)
+    }
+
+    if (!region) {
+      return []
+    }
+
+    const authHeaders = await getAuthHeaders()
+    const headers: Record<string, string> = {
+      ...authHeaders,
+    }
+
+    // Ensure publishable API key is included
+    if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY && !headers['x-publishable-api-key']) {
+      headers['x-publishable-api-key'] = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+    }
+
+    const next = {
+      ...(await getCacheOptions("products")),
+    }
+
+    const response = await sdk.client.fetch<{ products: HttpTypes.StoreProduct[] }>(
+      `/store/products`,
+      {
+        method: "GET",
+        query: {
+          q: modal,
+          region_id: region.id,
+          fields: "id,title,handle,thumbnail,images,metadata",
+        },
+        headers,
+        next,
+        cache: "force-cache",
+      }
+    )
+    return response?.products || []
+  } catch (error: any) {
+    console.error("[getSameModalProducts] API Error:", {
+      message: error?.message,
+      status: error?.status,
+      modal,
+      regionId,
+      countryCode,
+      error: error,
+    })
+    return []
+  }
+}

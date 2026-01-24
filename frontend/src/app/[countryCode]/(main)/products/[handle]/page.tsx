@@ -1,14 +1,32 @@
 import { Metadata } from "next"
-import { notFound } from "next/navigation"
-import { listProducts, getProductAvailability } from "@lib/data/products"
-import { getRegion, listRegions } from "@lib/data/regions"
-import { getBrandsByProductId } from "@lib/data/brands"
-import { getProductReviews } from "@lib/data/reviews"
-import ProductTemplate from "@modules/products/templates"
-import { HttpTypes } from "@medusajs/types"
 import { getBaseURL } from "@lib/util/env"
-import { getProductPrice } from "@lib/util/get-product-price"
+import { notFound } from "next/navigation"
+import { HttpTypes } from "@medusajs/types"
 import { websiteConfig } from "@lib/website.config"
+import { getProductReviews } from "@lib/data/reviews"
+import { getBrandsByProductId } from "@lib/data/brands"
+import { getSameModalProducts } from "@lib/data/products"
+import ProductTemplate from "@modules/products/templates"
+import { getRegion, listRegions } from "@lib/data/regions"
+import { getProductPrice } from "@lib/util/get-product-price"
+import { listProducts, getProductAvailability } from "@lib/data/products"
+
+
+const getProductOptions = (products : HttpTypes.StoreProduct[]) => {
+
+  const normaize = products.map((product : HttpTypes.StoreProduct) => {
+    return {
+      title: product.title,
+      id: product.id,
+      handle: product.handle,
+      thumbnail: product.thumbnail,
+      size : product.metadata?.size,
+      color : product.metadata?.color_code
+    }
+  })
+
+  return normaize
+}
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -219,7 +237,7 @@ export default async function ProductPage(props: Props) {
 
   // Fetch brands, reviews, and availability optimistically (in parallel with product)
   // Fetch more reviews for structured data (up to 10 for Google rich results)
-  const [brand, reviewSummary, availability] = await Promise.all([
+  const [brand, reviewSummary, availability, sameModalProducts] = await Promise.all([
     getBrandsByProductId(pricedProduct.id),
     getProductReviews(pricedProduct.id, { limit: 10, offset: 0 }).catch(
       () => null
@@ -228,6 +246,12 @@ export default async function ProductPage(props: Props) {
       handle: params.handle,
       countryCode: params.countryCode,
     }).catch(() => null),
+    getSameModalProducts({
+      modal: pricedProduct?.metadata?.model as string,
+      countryCode: params.countryCode,
+      regionId: region.id,
+    }),
+    
   ])
 
   // Get product price for structured data
@@ -368,8 +392,12 @@ export default async function ProductPage(props: Props) {
           __html: JSON.stringify(breadcrumbStructuredData),
         }}
       />
-      {/* {JSON.stringify(availability)} */}
+     
+
+
       <ProductTemplate
+// @ts-ignore
+productOptions={getProductOptions(sameModalProducts as    HttpTypes.StoreProduct[]) || []}
         product={pricedProduct}
         region={region}
         countryCode={params.countryCode}

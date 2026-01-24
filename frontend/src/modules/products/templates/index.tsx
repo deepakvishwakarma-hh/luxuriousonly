@@ -18,8 +18,10 @@ import ProductReviews from "@modules/products/components/product-reviews"
 import { Brand } from "@lib/data/brands"
 import { ReviewsResponse } from "@lib/data/reviews"
 import { ProductAvailabilityResponse } from "@lib/data/products"
+import ProductOptions from "@modules/products/components/product-options"
 
 type ProductTemplateProps = {
+  productOptions: HttpTypes.StoreProduct[]
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   countryCode: string
@@ -30,6 +32,7 @@ type ProductTemplateProps = {
 }
 
 const ProductTemplate: React.FC<ProductTemplateProps> = ({
+  productOptions,
   product,
   region,
   countryCode,
@@ -112,6 +115,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               region={region}
               countryCode={countryCode}
             />
+  
             <Suspense
               fallback={
                 <ProductActions
@@ -123,6 +127,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             >
               <ProductActionsWrapper id={product.id} region={region} />
             </Suspense>
+
+             {/* @ts-ignore */}
+            <ProductOptions options={productOptions} activeProductId={product.id} />
 
             <ProductTabs
               product={product}
