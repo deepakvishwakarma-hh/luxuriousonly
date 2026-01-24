@@ -59,7 +59,7 @@ const ProductOptions = ({ options, activeProductId }: ProductOptionsProps) => {
 
         // If found, use it; otherwise use first product with that size
         const targetProduct = sameColorProduct || options.find((opt) => opt.size === size)
-        
+
         return targetProduct ? `/${countryCode}/products/${targetProduct.handle}` : null
     }
 
@@ -79,22 +79,78 @@ const ProductOptions = ({ options, activeProductId }: ProductOptionsProps) => {
     }
 
     return (
-        <div className="space-y-6 py-4 border-t border-gray-200 mt-6">
+        <div className="space-y-6 py-4 border-t border-gray-200">
+
+            {/* Color Selection */}
+            {colorsForActiveSize.length > 0 && (
+                <div className="flex flex-col gap-y-3">
+                    <span className="text-sm font-medium text-gray-500 uppercase">
+                        Select Colors
+                    </span>
+                    <div className="flex flex-wrap gap-3">
+                        {colorsForActiveSize.map((opt) => {
+                            const isActive = opt.color === activeProduct.color
+                            const href = getColorHref(opt.color)
+                            const className = `relative group transition-all rounded-lg overflow-hidden ${isActive
+                                ? "ring-2 ring-black ring-offset-2"
+                                : "border border-gray-300 hover:border-gray-400 hover:shadow-md"
+                                }`
+
+                            const content = (
+                                <>
+                                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-50">
+                                        <Image
+                                            src={opt.thumbnail}
+                                            alt={opt.color}
+                                            fill
+                                            className="object-contain"
+                                            sizes="(max-width: 640px) 64px, 80px"
+                                        />
+                                    </div>
+                                </>
+                            )
+
+                            if (isActive || !href) {
+                                return (
+                                    <div
+                                        key={opt.color}
+                                        className={className}
+                                        title={opt.color}
+                                    >
+                                        {content}
+                                    </div>
+                                )
+                            }
+
+                            return (
+                                <Link
+                                    key={opt.color}
+                                    href={href}
+                                    className={className}
+                                    title={opt.color}
+                                >
+                                    {content}
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Size Selection */}
             <div className="flex flex-col gap-y-3">
-                <span className="text-[14px] font-semibold text-gray-700">
+                <span className="text-sm font-medium text-gray-500 uppercase">
                     Select Size
                 </span>
                 <div className="flex flex-wrap gap-2">
                     {sizes.map((size) => {
                         const isActive = size === activeProduct.size
                         const href = getSizeHref(size)
-                        const className = `border text-small-regular h-10 rounded-full px-5 transition-all ${
-                            isActive
-                                ? "border-black bg-white font-medium"
-                                : "border-ui-border-base bg-ui-bg-subtle hover:shadow-elevation-card-rest hover:border-gray-400"
-                        }`
-                        
+                        const className = `border text-sm font-medium h-10 rounded-full px-5 transition-all flex items-center justify-center ${isActive
+                            ? "border-black bg-white text-black shadow-sm"
+                            : "border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:shadow-sm"
+                            }`
+
                         if (isActive || !href) {
                             return (
                                 <span
@@ -105,7 +161,7 @@ const ProductOptions = ({ options, activeProductId }: ProductOptionsProps) => {
                                 </span>
                             )
                         }
-                        
+
                         return (
                             <Link
                                 key={size}
@@ -119,60 +175,6 @@ const ProductOptions = ({ options, activeProductId }: ProductOptionsProps) => {
                 </div>
             </div>
 
-            {/* Color Selection */}
-            {colorsForActiveSize.length > 0 && (
-                <div className="flex flex-col gap-y-3">
-                    <span className="text-[14px] font-semibold text-gray-700">
-                        Select Color
-                    </span>
-                    <div className="flex flex-wrap gap-3">
-                        {colorsForActiveSize.map((opt) => {
-                            const isActive = opt.color === activeProduct.color
-                            const href = getColorHref(opt.color)
-                            const className = `relative group transition-all ${
-                                isActive ? "border border-black" : ""
-                            }`
-                            
-                            const content = (
-                                <>
-                                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-100">
-                                        <Image
-                                            src={opt.thumbnail}
-                                            alt={opt.color}
-                                            fill
-                                            className="object-contain"
-                                            sizes="(max-width: 640px) 64px, 80px"
-                                        />
-                                    
-                                    </div>
-                                  
-                                </>
-                            )
-                            
-                            if (isActive || !href) {
-                                return (
-                                    <div
-                                        key={opt.color}
-                                        className={className}
-                                    >
-                                        {content}
-                                    </div>
-                                )
-                            }
-                            
-                            return (
-                                <Link
-                                    key={opt.color}
-                                    href={href}
-                                    className={className}
-                                >
-                                    {content}
-                                </Link>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

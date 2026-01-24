@@ -21,7 +21,7 @@ import { ProductAvailabilityResponse } from "@lib/data/products"
 import ProductOptions from "@modules/products/components/product-options"
 
 type ProductTemplateProps = {
-  productOptions: HttpTypes.StoreProduct[]
+  productOptions: any[]
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   countryCode: string
@@ -119,17 +119,20 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             <Suspense
               fallback={
                 <ProductActions
+                productOptions={productOptions}
+                activeProductId={product.id}
                   disabled={true}
                   product={product}
                   region={region}
                 />
               }
             >
-              <ProductActionsWrapper id={product.id} region={region} />
+              <ProductActionsWrapper
+              productOptions={productOptions}
+              activeProductId={product.id}
+              id={product.id} region={region} />
             </Suspense>
 
-             {/* @ts-ignore */}
-            <ProductOptions options={productOptions} activeProductId={product.id} />
 
             <ProductTabs
               product={product}

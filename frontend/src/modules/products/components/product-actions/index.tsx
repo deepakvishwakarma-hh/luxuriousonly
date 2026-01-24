@@ -18,10 +18,13 @@ import {
   removeFromLikedAPI,
   getLikedProductIdsFromAPI,
 } from "@lib/util/liked-api"
+import ProductOptions from "../product-options"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
+  productOptions: any[]
+  activeProductId: string
   disabled?: boolean
 }
 
@@ -37,6 +40,8 @@ const optionsAsKeymap = (
 export default function ProductActions({
   product,
   disabled,
+  productOptions,
+  activeProductId,
 }: ProductActionsProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -271,6 +276,10 @@ export default function ProductActions({
           </span>
         </div>
         <div>
+          {/* @ts-ignore */}
+          <ProductOptions options={productOptions} activeProductId={activeProductId} />
+        </div>
+        <div>
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
               {(product.options || []).map((option) => {
@@ -348,8 +357,8 @@ export default function ProductActions({
             {!selectedVariant && !options
               ? "Select variant"
               : !inStock || !isValidVariant
-              ? "Out of stock"
-              : "Add to cart"}
+                ? "Out of stock"
+                : "Add to cart"}
           </Button>
         </div>
 
