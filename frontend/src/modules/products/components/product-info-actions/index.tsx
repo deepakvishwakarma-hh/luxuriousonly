@@ -28,10 +28,22 @@ const ProductInfoActions = ({ productId, product }: ProductInfoActionsProps) => 
   // Modal state for the Share popup
   const [shareModalOpen, setShareModalOpen] = React.useState(false)
   const [copied, setCopied] = React.useState(false) 
+  const [hasNativeShare, setHasNativeShare] = React.useState(false)
 
   const currentUrl = typeof window !== "undefined" ? window.location.href : ""
 
+  // Check for native share support only on client side
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      setHasNativeShare(true)
+    }
+  }, [])
+
   const handleCopyLink = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      console.error("Clipboard API not available")
+      return
+    }
     try {
       await navigator.clipboard.writeText(currentUrl)
       setCopied(true)
@@ -44,16 +56,19 @@ const ProductInfoActions = ({ productId, product }: ProductInfoActionsProps) => 
   }
 
   const handleShareNative = async () => {
-    if ((navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: document.title, url: currentUrl })
-        setShareModalOpen(false)
-      } catch (e) {
-        console.error("Share failed", e)
-      }
-    } else {
+    if (typeof navigator === "undefined" || !(navigator as any).share) {
       // fallback: keep modal open for manual share options
       setShareModalOpen(true)
+      return
+    }
+    try {
+      await (navigator as any).share({ 
+        title: typeof document !== "undefined" ? document.title : "", 
+        url: currentUrl 
+      })
+      setShareModalOpen(false)
+    } catch (e) {
+      console.error("Share failed", e)
     }
   }
 
@@ -157,7 +172,7 @@ const ProductInfoActions = ({ productId, product }: ProductInfoActionsProps) => 
                 </div>
               </button>
 
-              {(navigator as any).share && (
+              {hasNativeShare && (
                 <button
                   className="w-full text-left px-4 py-3 rounded hover:bg-gray-50 flex items-center gap-4 border border-gray-100"
                   onClick={handleShareNative}

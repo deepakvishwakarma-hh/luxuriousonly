@@ -6,7 +6,8 @@ import { getCacheOptions } from "./cookies"
 
 export type Brand = {
     id: string
-    name: string
+    name: string,
+    title?: string | null
     slug?: string | null
     description?: string | null
     meta_title?: string | null

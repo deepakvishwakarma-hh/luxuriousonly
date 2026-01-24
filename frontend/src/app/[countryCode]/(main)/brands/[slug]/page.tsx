@@ -287,6 +287,7 @@ export default async function BrandProductsPage(props: Props) {
         region={region}
         brandSlug={slug}
         brandName={brand.name}
+        brandTitle={brand?.title || undefined}
         brandMetaTitle={brand.meta_title || undefined}
         brandMetaDesc={brand.meta_desc || undefined}
         brandImage={brand.image_url || undefined}

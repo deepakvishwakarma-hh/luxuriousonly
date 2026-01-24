@@ -109,6 +109,7 @@ function ProductPreviewClient({
 }
 
 type BrandPageProps = {
+  brandTitle?: string
   countryCode: string
   region: HttpTypes.StoreRegion
   brandSlug: string
@@ -150,6 +151,7 @@ export default function BrandPage({
   brandImage,
   brandDescription,
   initialData,
+  brandTitle,
 }: BrandPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -489,12 +491,12 @@ export default function BrandPage({
   )
 
   return (
-    <div className="px-5 py-8">
+    <div className="px-5 pb-8">
       {/* Brand Header */}
       {(brandName || brandMetaTitle || brandImage || brandMetaDesc || brandDescription) && (
-        <div className="mb-12 pb-8 border-b border-gray-200">
+        <div className="mb-12 pb-8 border-b border-gray-200 bg-gray-100 pt-8">
           <div className="flex flex-col items-center gap-6">            
-            {brandImage && (
+            {/* {brandImage && (
               <div className="mb-4">
                 <img 
                   src={brandImage} 
@@ -502,11 +504,11 @@ export default function BrandPage({
                   className="h-24 w-auto object-contain"
                 />
               </div>
-            )}
+            )} */}
             <div className="text-center space-y-4 max-w-3xl mx-auto">
-              {brandName && (
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight text-gray-900 font-urbanist">
-                  {brandName}
+              {(brandName || brandTitle) && (
+                <h1 className="text-3xl sm:text-4xl md:text-4xl font-bold leading-tight text-gray-900 font-urbanist">
+                  {brandTitle || brandName}
                 </h1>
               )}
 
