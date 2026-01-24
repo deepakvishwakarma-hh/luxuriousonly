@@ -25,7 +25,7 @@ const pillars = [
 
 export default function KeyPillars() {
   return (
-    <div className="w-full content-container py-6">
+    <div className="w-full max-w-8xl mx-auto px-5 py-6">
       <div
         className="
           grid grid-cols-1

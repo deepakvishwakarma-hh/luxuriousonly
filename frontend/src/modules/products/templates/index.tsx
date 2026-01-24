@@ -53,9 +53,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           handle: product.handle,
           thumbnail: product.thumbnail,
           title: product.title,
-        }}  
+        }}
       />
-      <div className="content-container-- px-5 md:px-5">
+      <div className="max-w-8xl mx-auto px-5">
         {/* Breadcrumb */}
         <nav
           className="flex items-center gap-2 py-4 text-sm"
@@ -68,7 +68,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           >
             <FaHome className="w-4 h-4" />
           </LocalizedClientLink>
-          
+
           {/* Category breadcrumbs */}
           {product.categories && product.categories.length > 0 && (
             <>
@@ -85,7 +85,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               ))}
             </>
           )}
-          
+
           <span className="text-gray-400" aria-hidden="true">/</span>
           <span className="text-gray-900 font-semibold hidden md:inline-block" title={product.title}>
             {product.title}
@@ -95,7 +95,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             {product.title}
           </span>
         </nav>
-        <div className="flex flex-col md:flex-row gap-5">
+        <div className="flex flex-col md:flex-row gap-10">
           {/* left side  */}
           <div className="w-full md:w-3/5 md:self-start md:sticky md:top-24 md:z-10">
             <ProductImageCarousel
@@ -115,12 +115,12 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               region={region}
               countryCode={countryCode}
             />
-  
+
             <Suspense
               fallback={
                 <ProductActions
-                productOptions={productOptions}
-                activeProductId={product.id}
+                  productOptions={productOptions}
+                  activeProductId={product.id}
                   disabled={true}
                   product={product}
                   region={region}
@@ -128,9 +128,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               }
             >
               <ProductActionsWrapper
-              productOptions={productOptions}
-              activeProductId={product.id}
-              id={product.id} region={region} />
+                productOptions={productOptions}
+                activeProductId={product.id}
+                id={product.id} region={region} />
             </Suspense>
 
 
@@ -159,13 +159,13 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
         </div>
       </div>
       <div
-        className="px-5 md:px-5"
+        className="max-w-8xl mx-auto px-5"
         data-testid="product-reviews-container"
       >
         <ProductReviews productId={product.id} />
       </div>
       <div
-        className="px-5 md:px-5"
+        className="max-w-8xl mx-auto px-5"
         data-testid="related-products-container"
       >
         <Suspense fallback={<SkeletonRelatedProducts />}>

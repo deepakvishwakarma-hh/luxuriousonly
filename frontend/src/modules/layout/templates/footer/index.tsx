@@ -27,7 +27,7 @@ const Footer = () => {
 
   return (
     <footer className="w-full bg-black text-white">
-      <div className="px-5 md:px-5">
+      <div className="max-w-8xl mx-auto px-5">
         {/* ================= TOP SECTION ================= */}
         <div className="py-8 lg:py-12 border-b border-gray-800">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -37,7 +37,7 @@ const Footer = () => {
                 {websiteConfig.shortName}
               </h2>
               <div className="h-px bg-gray-700 w-16 mb-3"></div>
-        
+
               {/* About Content */}
               <p className="text-sm leading-relaxed mb-4 text-white">
                 {websiteConfig.company.description}
@@ -219,9 +219,8 @@ const Footer = () => {
                   Information
                 </h4>
                 <IoChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    informationState.state ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 text-gray-400 transition-transform ${informationState.state ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {informationState.state && (
@@ -257,9 +256,8 @@ const Footer = () => {
                   Popular Brands
                 </h4>
                 <IoChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    popularBrandsState.state ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 text-gray-400 transition-transform ${popularBrandsState.state ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {popularBrandsState.state && (
@@ -303,9 +301,8 @@ const Footer = () => {
                   Quick Shop
                 </h4>
                 <IoChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    quickShopState.state ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 text-gray-400 transition-transform ${quickShopState.state ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {quickShopState.state && (
@@ -342,9 +339,8 @@ const Footer = () => {
                   Quick Links
                 </h4>
                 <IoChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    quickLinksState.state ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 text-gray-400 transition-transform ${quickLinksState.state ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {quickLinksState.state && (

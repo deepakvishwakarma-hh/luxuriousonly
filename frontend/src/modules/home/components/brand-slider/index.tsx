@@ -30,7 +30,7 @@ export default function BrandSlider() {
   }, [])
 
   return (
-    <div className="w-full content-container py-4">
+    <div className="w-full max-w-8xl mx-auto px-5 py-4">
       <div className="relative">
         {/* Navigation buttons */}
         <button
@@ -46,7 +46,7 @@ export default function BrandSlider() {
           spaceBetween={12}
           slidesPerView={3}
           speed={autoplayEnabled ? 6000 : 800} /* continuous feel on mobile */
-          autoplay={autoplayEnabled ? { delay: 1, disableOnInteraction: false, pauseOnMouseEnter: false, reverseDirection: true } : false }
+          autoplay={autoplayEnabled ? { delay: 1, disableOnInteraction: false, pauseOnMouseEnter: false, reverseDirection: true } : false}
           breakpoints={{
             320: { slidesPerView: 2, spaceBetween: 10 },
             420: { slidesPerView: 3, spaceBetween: 12 },

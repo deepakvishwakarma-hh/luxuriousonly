@@ -29,7 +29,7 @@ const catalogItems: CatalogItem[] = [
 
 const TopCatalog = () => {
   return (
-    <div className="w-full content-container py-5">
+    <div className="w-full max-w-8xl mx-auto px-5 py-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {catalogItems.map((item, index) => (
           <div

@@ -136,7 +136,7 @@ export default function ProductImageCarousel({
 
 
         {/* Main Image */}
-        <div className="relative aspect-square bg-white rounded overflow-hidden border border-gray-100">
+        <div className="relative aspect-square bg-white rounded overflow-hidden border border-gray-500">
           <Image
             src={images[activeImage]}
             alt={getImageAlt(activeImage)}
@@ -145,7 +145,7 @@ export default function ProductImageCarousel({
             priority
             aria-describedby={getImageDescribedBy(activeImage)}
           />
-          
+
           {/* Navigation Buttons */}
           {hasPrevious && (
             <button
@@ -157,7 +157,7 @@ export default function ProductImageCarousel({
               <IoChevronBack className="w-5 h-5 text-gray-800" />
             </button>
           )}
-          
+
           {hasNext && (
             <button
               type="button"

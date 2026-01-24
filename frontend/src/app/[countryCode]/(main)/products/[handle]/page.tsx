@@ -12,16 +12,16 @@ import { getProductPrice } from "@lib/util/get-product-price"
 import { listProducts, getProductAvailability } from "@lib/data/products"
 
 
-const getProductOptions = (products : HttpTypes.StoreProduct[]) => {
+const getProductOptions = (products: HttpTypes.StoreProduct[]) => {
 
-  const normaize = products.map((product : HttpTypes.StoreProduct) => {
+  const normaize = products.map((product: HttpTypes.StoreProduct) => {
     return {
       title: product.title,
       id: product.id,
       handle: product.handle,
       thumbnail: product.thumbnail,
-      size : product.metadata?.size,
-      color : product.metadata?.color_code
+      size: product.metadata?.size,
+      color: product.metadata?.color_code
     }
   })
 
@@ -67,8 +67,7 @@ export async function generateStaticParams() {
       .filter((param) => param.handle)
   } catch (error) {
     console.error(
-      `Failed to generate static paths for product pages: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to generate static paths for product pages: ${error instanceof Error ? error.message : "Unknown error"
       }.`
     )
     return []
@@ -116,17 +115,16 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   // Get product price for metadata
   const { cheapestPrice } = getProductPrice({ product })
   const price = cheapestPrice?.calculated_price_number
-    ? `${cheapestPrice.calculated_price_number / 100} ${
-        cheapestPrice.currency_code
-      }`
+    ? `${cheapestPrice.calculated_price_number / 100} ${cheapestPrice.currency_code
+    }`
     : undefined
 
   // Build description from product data
   const description = product.description
     ? product.description.substring(0, 160).replace(/\n/g, " ")
     : product.subtitle
-    ? `${product.subtitle} - ${product.title}`
-    : `Shop ${product.title} at ${websiteConfig.shortName}. Premium luxury products with free shipping.`
+      ? `${product.subtitle} - ${product.title}`
+      : `Shop ${product.title} at ${websiteConfig.shortName}. Premium luxury products with free shipping.`
 
   // Build keywords from product data
   const keywords: string[] = [
@@ -140,21 +138,21 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   ]
 
   // Get first product image for Open Graph (prioritize first image for better SEO)
-  const firstImage = product.images && product.images.length > 0 
-    ? product.images[0] 
+  const firstImage = product.images && product.images.length > 0
+    ? product.images[0]
     : null
-  
+
   const ogImages = firstImage
     ? [
-        {
-          url: firstImage.url,
-          width: 1200,
-          height: 1200,
-          alt: product.title,
-        },
-      ]
+      {
+        url: firstImage.url,
+        width: 1200,
+        height: 1200,
+        alt: product.title,
+      },
+    ]
     : product.thumbnail
-    ? [
+      ? [
         {
           url: product.thumbnail,
           width: 1200,
@@ -162,13 +160,12 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
           alt: product.title,
         },
       ]
-    : []
+      : []
 
   const siteName = websiteConfig.shortName
   const companyName = websiteConfig.name || websiteConfig.displayName
-  const title = `${product.title}${
-    product.subtitle ? ` - ${product.subtitle}` : ""
-  } | ${companyName}`
+  const title = `${product.title}${product.subtitle ? ` - ${product.subtitle}` : ""
+    } | ${companyName}`
 
   return {
     title,
@@ -251,7 +248,7 @@ export default async function ProductPage(props: Props) {
       countryCode: params.countryCode,
       regionId: region.id,
     }),
-    
+
   ])
 
   // Get product price for structured data
@@ -266,8 +263,8 @@ export default async function ProductPage(props: Props) {
     pricedProduct.images && pricedProduct.images.length > 0
       ? pricedProduct.images.map((img) => img.url)
       : pricedProduct.thumbnail
-      ? [pricedProduct.thumbnail]
-      : []
+        ? [pricedProduct.thumbnail]
+        : []
 
   // Build structured data for SEO (JSON-LD) - remove undefined fields
   const productStructuredData: any = {
@@ -392,12 +389,10 @@ export default async function ProductPage(props: Props) {
           __html: JSON.stringify(breadcrumbStructuredData),
         }}
       />
-     
-
 
       <ProductTemplate
-// @ts-ignore
-productOptions={getProductOptions(sameModalProducts as    HttpTypes.StoreProduct[]) || []}
+        // @ts-ignore
+        productOptions={getProductOptions(sameModalProducts as HttpTypes.StoreProduct[]) || []}
         product={pricedProduct}
         region={region}
         countryCode={params.countryCode}
