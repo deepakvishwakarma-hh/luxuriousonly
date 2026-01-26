@@ -347,7 +347,12 @@ async function convertCurrency(usdAmount: number, targetCurrency: string, exchan
 async function downloadAndSaveImage(
   imageUrl: string,
   fileModuleService: any,
-  backendUrl?: string
+  backendUrl?: string,
+  model?: string,
+  colorCode?: string,
+  size?: string,
+  sku?: string,
+  imageIndex?: number
 ): Promise<string> {
   // Validate inputs
   if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim() === '') {
@@ -437,10 +442,43 @@ async function downloadAndSaveImage(
       }
     }
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const randomSuffix = Math.random().toString(36).substring(2, 8)
-    const filename = `product-${timestamp}-${randomSuffix}${fileExtension}`
+    // Generate filename based on product info: model + color_code + size + sku
+    let filename: string
+
+    // Sanitize all parts (remove spaces, special chars that aren't safe for filenames)
+    // Use empty string if value is missing, but still build the filename
+    const sanitizedModel = (model || '').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+    const sanitizedColorCode = (colorCode || '').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+    const sanitizedSize = (size || '').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+    const sanitizedSku = (sku || '').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+
+    // Build filename if we have at least some product info
+    if (sanitizedModel || sanitizedColorCode || sanitizedSize || sanitizedSku) {
+      // Build parts array, filtering out empty values
+      const parts: string[] = []
+      if (sanitizedModel) parts.push(sanitizedModel)
+      if (sanitizedColorCode) parts.push(sanitizedColorCode)
+      if (sanitizedSize) parts.push(sanitizedSize)
+      if (sanitizedSku) parts.push(sanitizedSku)
+
+      if (imageIndex === undefined || imageIndex === 0) {
+        // First image: model + color_code + size + sku
+        filename = `${parts.join('-')}${fileExtension}`
+      } else {
+        // Subsequent images: model + color_code + size + sku + 'Image' + index
+        const imageNumber = imageIndex + 1
+        filename = `${parts.join('-')}-Image-${imageNumber}${fileExtension}`
+      }
+
+      // Log for debugging
+      console.log(`Generated filename: ${filename} from model="${model}", colorCode="${colorCode}", size="${size}", sku="${sku}", index=${imageIndex}`)
+    } else {
+      // Fallback to timestamp-based filename if no product info available
+      const timestamp = Date.now()
+      const randomSuffix = Math.random().toString(36).substring(2, 8)
+      filename = `product-${timestamp}-${randomSuffix}${fileExtension}`
+      console.warn(`Using fallback filename (no product info): ${filename} - model="${model}", colorCode="${colorCode}", size="${size}", sku="${sku}"`)
+    }
 
     // Determine MIME type
     let mimeType = 'image/jpeg'
@@ -635,10 +673,60 @@ async function processProductRow(
         // Use Promise.allSettled to handle failures optimistically - continue even if some downloads fail
         if (fileModuleService && images.length > 0) {
           try {
+            // Get model, color_code, size, and sku for filename generation
+            // Handle case-insensitive metadata lookup since CSV headers may vary
+            const getMetadataValue = (key: string, altKeys?: string[]): string => {
+              // Try exact match first
+              if (metadata[key]) return String(metadata[key])
+              // Try case-insensitive match
+              const lowerKey = key.toLowerCase()
+              for (const metaKey of Object.keys(metadata)) {
+                if (metaKey.toLowerCase() === lowerKey) {
+                  return String(metadata[metaKey])
+                }
+              }
+              // Try alternative keys
+              if (altKeys) {
+                for (const altKey of altKeys) {
+                  if (metadata[altKey]) return String(metadata[altKey])
+                  const lowerAltKey = altKey.toLowerCase()
+                  for (const metaKey of Object.keys(metadata)) {
+                    if (metaKey.toLowerCase() === lowerAltKey) {
+                      return String(metadata[metaKey])
+                    }
+                  }
+                }
+              }
+              return ''
+            }
+
+            const model = getMetadataValue('model', ['Model', 'MODEL'])
+            const colorCode = getMetadataValue('color_code', ['color code', 'Color Code', 'COLOR_CODE', 'ColorCode'])
+            // Get size from row first, then try metadata
+            let size = sizeIndex !== -1 ? row[sizeIndex]?.trim() || '' : ''
+            if (!size) {
+              size = getMetadataValue('size', ['Size', 'SIZE'])
+            }
+            if (!size) {
+              size = 'Default'
+            }
+
+            // Log for debugging
+            console.log(`Image filename data - model: "${model}", colorCode: "${colorCode}", size: "${size}", sku: "${sku}", metadata keys: ${Object.keys(metadata).join(', ')}`)
+
             const downloadResults = await Promise.allSettled(
-              images.map(async (img) => {
+              images.map(async (img, index) => {
                 try {
-                  const localUrl = await downloadAndSaveImage(img.url, fileModuleService, backendUrl)
+                  const localUrl = await downloadAndSaveImage(
+                    img.url,
+                    fileModuleService,
+                    backendUrl,
+                    model,
+                    colorCode,
+                    size,
+                    sku,
+                    index
+                  )
                   return { url: localUrl }
                 } catch (error: any) {
                   // Extra safety: if downloadAndSaveImage somehow throws, catch it here
@@ -830,10 +918,49 @@ async function processProductRow(
           // Use Promise.allSettled to handle failures optimistically - continue even if some downloads fail
           if (fileModuleService && variantImages.length > 0) {
             try {
+              // Helper function for case-insensitive metadata lookup
+              const getMetadataValue = (meta: Record<string, any>, key: string, altKeys?: string[]): string => {
+                // Try exact match first
+                if (meta[key]) return String(meta[key])
+                // Try case-insensitive match
+                const lowerKey = key.toLowerCase()
+                for (const metaKey of Object.keys(meta)) {
+                  if (metaKey.toLowerCase() === lowerKey) {
+                    return String(meta[metaKey])
+                  }
+                }
+                // Try alternative keys
+                if (altKeys) {
+                  for (const altKey of altKeys) {
+                    if (meta[altKey]) return String(meta[altKey])
+                    const lowerAltKey = altKey.toLowerCase()
+                    for (const metaKey of Object.keys(meta)) {
+                      if (metaKey.toLowerCase() === lowerAltKey) {
+                        return String(meta[metaKey])
+                      }
+                    }
+                  }
+                }
+                return ''
+              }
+
+              // Get model, color_code, size, and sku for filename generation (prefer variant, fallback to main product)
+              const variantModel = getMetadataValue(variantMetadata, 'model', ['Model', 'MODEL']) || getMetadataValue(metadata, 'model', ['Model', 'MODEL'])
+              const variantColorCode = getMetadataValue(variantMetadata, 'color_code', ['color code', 'Color Code', 'COLOR_CODE', 'ColorCode']) || getMetadataValue(metadata, 'color_code', ['color code', 'Color Code', 'COLOR_CODE', 'ColorCode'])
+
               const downloadResults = await Promise.allSettled(
-                variantImages.map(async (img) => {
+                variantImages.map(async (img, index) => {
                   try {
-                    const localUrl = await downloadAndSaveImage(img.url, fileModuleService, backendUrl)
+                    const localUrl = await downloadAndSaveImage(
+                      img.url,
+                      fileModuleService,
+                      backendUrl,
+                      variantModel,
+                      variantColorCode,
+                      variantSize,
+                      variantSku,
+                      index
+                    )
                     return { url: localUrl }
                   } catch (error: any) {
                     // Extra safety: if downloadAndSaveImage somehow throws, catch it here
