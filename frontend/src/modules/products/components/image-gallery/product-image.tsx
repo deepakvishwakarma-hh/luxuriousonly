@@ -69,7 +69,8 @@ export default function ProductImageCarousel({
     } else {
       // Subsequent images: use EAN with image number
       const imageNumber = index + 1
-      return ean ? `${ean} image #${imageNumber}` : `${productTitle} image #${imageNumber}`
+      return `${productItemNumber}-${ean}-Image-${imageNumber}`.replace(/ /g, "-")
+
     }
   }
 
