@@ -10,8 +10,6 @@ import ProductTemplate from "@modules/products/templates"
 import { getRegion, listRegions } from "@lib/data/regions"
 import { getProductPrice } from "@lib/util/get-product-price"
 import { listProducts, getProductAvailability } from "@lib/data/products"
-
-
 const getProductOptions = (products: HttpTypes.StoreProduct[]) => {
 
   const normaize = products.map((product: HttpTypes.StoreProduct) => {

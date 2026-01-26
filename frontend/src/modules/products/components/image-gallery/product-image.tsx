@@ -14,9 +14,11 @@ interface ProductImageCarouselProps {
   productTitle: string
   productHandle?: string
   ean?: string
+  productItemNumber?: string
 }
 
 export default function ProductImageCarousel({
+  productItemNumber,
   images,
   productTitle,
   productHandle,
@@ -63,7 +65,7 @@ export default function ProductImageCarousel({
   const getImageAlt = (index: number): string => {
     if (index === 0) {
       // First image: use product slug (handle)
-      return productHandle || productTitle
+      return `${productItemNumber}-${ean}`.replace(/ /g, "-")
     } else {
       // Subsequent images: use EAN with image number
       const imageNumber = index + 1

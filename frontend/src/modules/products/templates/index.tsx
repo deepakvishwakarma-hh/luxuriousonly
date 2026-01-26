@@ -45,6 +45,35 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     return notFound()
   }
 
+  const itemNo = (() => {
+    const parts: string[] = []
+
+    // Get brandname
+    if (brand?.name) {
+      parts.push(brand.name)
+    }
+
+    // Get model from metadata
+    if (product.metadata?.model) {
+      parts.push(String(product.metadata.model))
+    }
+
+    // Get color_code from metadata
+    if (product.metadata?.color_code) {
+      parts.push(String(product.metadata.color_code))
+    }
+
+    // Get size from metadata
+    if (product.metadata?.size) {
+      parts.push(String(product.metadata.size))
+    }
+
+    // Return joined parts or fallback
+    return parts.length > 0 ? parts.join(" ") : "N/A"
+  })()
+
+
+
   return (
     <>
       <TrackProductView
@@ -99,10 +128,11 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           {/* left side  */}
           <div className="w-full md:w-3/5 md:self-start md:sticky md:top-24 md:z-10">
             <ProductImageCarousel
+              productItemNumber={itemNo}
               images={(images ?? []).map((image) => image.url)}
               productTitle={product.title}
               productHandle={product.handle}
-              ean={product.metadata?.ean as string | undefined}
+              ean={product.variants?.at(0)?.sku ?? undefined}
             />
           </div>
           {/* right side  */}
