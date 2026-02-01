@@ -153,7 +153,7 @@ export default async function Home(props: Props) {
       <DiscountBar />
       <TopCatalog />
       <div className="space-y-12 sm:space-y-16">
-        <BrandSlider />
+        {/* <BrandSlider /> */}
         <div className="max-w-8xl mx-auto px-5">
           <HomepageListing
             sortBy="created_at"

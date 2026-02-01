@@ -15,17 +15,6 @@ type HeroCarouselProps = {
 }
 
 export default function HeroCarousel({ carousels }: HeroCarouselProps) {
-  // Add a static slide (public/sample/slide1.webp) as the first slide
-  const slides: Carousel[] = [
-    {
-      id: "slide1",
-      image_url1: "/sample/slide1.webp",
-      image_url2: "/sample/slide1.webp",
-      link: null,
-      order: -1,
-    },
-    ...(carousels || []),
-  ]
 
   return (
     <div className="w-full relative">
@@ -42,10 +31,10 @@ export default function HeroCarousel({ carousels }: HeroCarouselProps) {
           dynamicBullets: true,
         }}
         navigation={true}
-        loop={slides.slice(0, 2).length > 1}
+        loop={carousels.slice(0, 2).length > 1}
         className="hero-carousel"
       >
-        {slides.slice(0, 2).map((carousel) => {
+        {carousels.slice(0, 2).map((carousel) => {
           // Use image_url1 for desktop, image_url2 for mobile
           const desktopImageUrl = carousel.image_url1 || carousel.image_url2
           const mobileImageUrl = carousel.image_url2 || carousel.image_url1
