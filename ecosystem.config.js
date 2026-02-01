@@ -13,7 +13,7 @@ module.exports = {
       name: "fe",
       cwd: "./frontend",
       script: "npm",
-      args: "run dev",
+      args: "run start",
       env: {
         NODE_ENV: "production",
       },
