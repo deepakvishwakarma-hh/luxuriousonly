@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { FaEnvelope } from "react-icons/fa"
-import { IoArrowUp, IoChevronDown } from "react-icons/io5"
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { websiteConfig } from "@lib/website.config"
 import useToggleState from "@lib/hooks/use-toggle-state"
+import { IoArrowUp, IoChevronDown } from "react-icons/io5"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 const Footer = () => {
   const [email, setEmail] = useState("")
@@ -162,13 +162,13 @@ const Footer = () => {
               </h4>
               <ul className="space-y-2 text-sm">
                 {[
-                  ["Shop Sunglasses", "/sunglasses"],
-                  ["Men Sunglasses", "/sunglasses/men"],
-                  ["Women Sunglasses", "/sunglasses/women"],
-                  ["Kids Sunglasses", "/sunglasses/kids"],
-                  ["Shop Glasses", "/glasses"],
-                  ["Men Glasses", "/glasses/men"],
-                  ["Women Glasses", "/glasses/women"],
+                  ["Shop Sunglasses", "/categories/sunglasses"],
+                  ["Men Sunglasses", "/categories/men"],
+                  ["Women Sunglasses", "/categories/women"],
+                  ["Kids Sunglasses", "/categories/kids"],
+                  ["Shop Glasses", "/categories/glasses"],
+                  ["Men Glasses", "/categories/men"],
+                  ["Women Glasses", "/categories/women"],
                 ].map(([label, link]) => (
                   <li key={link}>
                     <LocalizedClientLink
@@ -194,7 +194,7 @@ const Footer = () => {
                   </LocalizedClientLink>
                 </li>
                 <li>
-                  <LocalizedClientLink href="/wishlist" className="text-white hover:text-gray-300">
+                  <LocalizedClientLink href="/liked" className="text-white hover:text-gray-300">
                     Wishlist
                   </LocalizedClientLink>
                 </li>
@@ -351,7 +351,7 @@ const Footer = () => {
                     </LocalizedClientLink>
                   </li>
                   <li>
-                    <LocalizedClientLink href="/wishlist" className="text-white hover:text-gray-300">
+                    <LocalizedClientLink href="/liked" className="text-white hover:text-gray-300">
                       Wishlist
                     </LocalizedClientLink>
                   </li>
@@ -371,7 +371,6 @@ const Footer = () => {
           <p className="text-xs sm:text-sm text-gray-400 text-center sm:text-left">
             {websiteConfig.company.copyright}
           </p>
-
           {/* Scroll to Top Button */}
           <button
             onClick={scrollToTop}
